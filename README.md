@@ -24,7 +24,7 @@ Other available flash maps:
 
 ```bash
 make flash_map3 
-make flash_map5 
+make flash_map4 
 ```
 
 For other information about ESP8266 flash maps check

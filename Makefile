@@ -152,6 +152,16 @@ flash_map3:
 
 	#	0x1fe000 ../bin/blank.bin
 
+flash_map4:
+	make clean
+	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=4
+	$(ESPTOOL) --flash_size 4MB  \
+		0x0 	../bin/boot_v1.7.bin \
+		0x1000  ../bin/upgrade/user1.4096.new.4.bin \
+		0x3fc000 ../bin/esp_init_data_default_v08.bin \
+		0x3fb000 ../bin/blank.bin \
+		0x3fe000 ../bin/blank.bin 
+
 flash_map5:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=5
@@ -160,6 +170,15 @@ flash_map5:
 		0x1000  ../bin/upgrade/user1.2048.new.5.bin \
 		0x1fc000 ../bin/esp_init_data_default_v05.bin \
 		0x1fb000 ../bin/blank.bin \
-		0x1fd000 ../bin/blank.bin \
 		0x1fe000 ../bin/blank.bin 
+
+flash_map6:
+	make clean
+	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=6
+	$(ESPTOOL) --flash_size 4MB  \
+		0x0 	../bin/boot_v1.7.bin \
+		0x1000  ../bin/upgrade/user1.4096.new.6.bin \
+		0x3fc000 ../bin/esp_init_data_default_v08.bin
+		0x3fb000 ../bin/blank.bin \
+		0x3fe000 ../bin/blank.bin 
 
