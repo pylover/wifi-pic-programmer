@@ -30,7 +30,7 @@ setup_mdns() {
 				(struct mdns_info *)os_zalloc(sizeof(struct mdns_info));
 	info->host_name = DEVICE_NAME;
 	info->ipAddr= ipconfig.ip.addr; //sation ip
-	info->server_name = DEVICE_NAME"Server";
+	info->server_name = DEVICE_NAME"S";
 	info->server_port = 80;
 	info->txt_data[0] = "version = 1.0.1";
 	espconn_mdns_init(info);

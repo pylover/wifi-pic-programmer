@@ -159,8 +159,8 @@ flash_map4:
 		0x0 	../bin/boot_v1.7.bin \
 		0x1000  ../bin/upgrade/user1.4096.new.4.bin \
 		0x3fc000 ../bin/esp_init_data_default_v08.bin \
-		0x3fb000 ../bin/blank.bin \
-		0x3fe000 ../bin/blank.bin 
+		0x3fb000 ../bin/blank.bin
+	#	0x3fe000 ../bin/blank.bin 
 
 flash_map5:
 	make clean
