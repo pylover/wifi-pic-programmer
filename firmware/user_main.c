@@ -3,6 +3,7 @@
 #include "partition.h"
 #include "wifi.h"
 #include "user_config.h"
+#include "webadmin.h"
 
 // SDK
 #include <ets_sys.h>
@@ -35,6 +36,7 @@ user_init(void) {
     uart_init(BIT_RATE_115200, BIT_RATE_115200);
     os_delay_us(60000);
     wifi_initialize(DEVICE_NAME, wifi_connect_cb, tick_cb);
+	webadmin_init();
     os_printf("System started ...\r\n");
 }
 
