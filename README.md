@@ -5,8 +5,8 @@ An ESP8266 powered Microchip PIC programmer.
 
 ## Firmware
 
-The firmware is implemented at top of the [ESP8266 NON-OS SDK V3]
-(https://github.com/espressif/ESP8266_NONOS_SDK).
+The firmware is implemented at top of the [ESP8266 NON-OS SDK V3](
+https://github.com/espressif/ESP8266_NONOS_SDK).
 
 ### Build firmware
 
