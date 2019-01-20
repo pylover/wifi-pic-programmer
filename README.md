@@ -10,13 +10,24 @@ The firmware is implemented at top of the [ESP8266 NON-OS SDK V3]
 
 ### Build firmware
 
-Follow this [https://github.com/easyqiot/esp-env] instruction to set up your 
+Follow [this](https://github.com/easyqiot/esp-env) instruction to set up your 
 environment.
 
 Then:
 
 ```bash
 cd path/to/wifi-pic-programmer
-make esp-01
+make flash_map2 
 ```
+
+Other available flash maps:
+
+```bash
+make flash_map3 
+make flash_map5 
+```
+
+For other information about ESP8266 flash maps check
+[here](https://github.com/espressif/esptool#flash-modes)
+
 
