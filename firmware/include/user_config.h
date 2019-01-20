@@ -3,7 +3,7 @@
 
 #define USE_OPTIMIZE_PRINTF
 
-#define DEVICE_NAME	"WIFI-PIC-Programmer"
+#define DEVICE_NAME	"WifiPicProg"
 
 #endif
 

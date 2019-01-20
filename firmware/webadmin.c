@@ -33,7 +33,7 @@
 	"<form method=\"post\">" \
 	"SSID: <input name=\"ssid\" value=\"%s\"/><br/>" \
 	"PSK: <input name=\"psk\" value=\"%s\"/><br/>" \
-	"<input type=\"submit\" value=\"Reboot\" />" \
+	"<input type=\"submit\" value=\"Connect\" />" \
 	"</form>" \
 	HTML_FOOTER
 

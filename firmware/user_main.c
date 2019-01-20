@@ -16,7 +16,7 @@
 
 static void ICACHE_FLASH_ATTR 
 tick_cb(uint32_t ticks) {
-	os_printf("%d\r\n", ticks);
+	//os_printf("%d\r\n", ticks);
 }
 
 
