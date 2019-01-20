@@ -7,7 +7,7 @@
 
 #define WIFI_SOFTAP_CHANNEL		7
 #define WIFI_SOFTAP_PSK			"esp-8266"
-
+#define WIFI_VERBOSE			false
 
 typedef void (*WifiCallback)(uint8_t);
 typedef void (*TickCallback)(uint32_t);

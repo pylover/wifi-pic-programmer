@@ -46,11 +46,13 @@ wifi_check_ip(void *arg) {
 			wifi_station_connect();
 		}
 		else {
+#if WIFI_VERBOSE
 			os_printf("STATION_IDLE\r\n");
+#endif
 		}
 
 		os_timer_setfn(&wifi_timer, (os_timer_func_t *)wifi_check_ip, NULL);
-		os_timer_arm(&wifi_timer, 500, 0);
+		os_timer_arm(&wifi_timer, 1000, 0);
 	}
 
 	if(wifiStatus != lastWifiStatus){
@@ -87,7 +89,7 @@ wifi_init_softap(const char *device_name) {
 	// Get the device mac address
 	bool ok = wifi_get_macaddr(SOFTAP_IF, &mac[0]);
 	if (!ok) {
-		ERROR("Cannot get softap macaddr\r\n");
+		os_printf("Cannot get softap macaddr\r\n");
 	}
 
 	// initialization
@@ -114,7 +116,7 @@ wifi_init_softap(const char *device_name) {
     ok = wifi_softap_set_config(config); 
     os_free(config);
 	if (!ok) {
-		ERROR("Cannot set softap config\r\n");
+		os_printf("Cannot set softap config\r\n");
 		return;
 	}
 
@@ -145,6 +147,7 @@ wifi_init_softap(const char *device_name) {
 void ICACHE_FLASH_ATTR 
 wifi_initialize(const char *device_name, WifiCallback cb, TickCallback tcb) {
 	struct station_config stationConf;
+	wifi_init_softap(device_name);
 	wifi_set_opmode_current(STATIONAP_MODE);
 	wifi_set_sleep_type(NONE_SLEEP_T);
 	wifi_cb = cb;
