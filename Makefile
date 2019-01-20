@@ -22,7 +22,7 @@ GEN_IMAGES= eagle.app.v6.out
 GEN_BINS= eagle.app.v6.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS=    \
-	user 
+	firmware 
 
 endif # } PDIR
 
@@ -46,7 +46,7 @@ ifeq ($(FLAVOR),release)
 endif
 
 COMPONENTS_eagle.app.v6 = \
-	user/libuser.a 
+	firmware/libwifipicprog.a 
 
 LINKFLAGS_eagle.app.v6 = \
 	-L../lib        \
@@ -119,7 +119,7 @@ DDEFINES +=				\
 #
 
 INCLUDES := $(INCLUDES) \
-	-I $(PDIR)/user/include
+	-I $(PDIR)/firmware/include
 
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile
