@@ -26,8 +26,11 @@
 
 #define HTML_HEADER \
 	"<!DOCTYPE html><html>" \
-	"<head><title>ESP8266 Firstboot config</title></head><body>\r\n" 
+	"<head><title>ESP8266 Firstboot config</title></head>" \
+	"<body>\r\n" 
+
 #define HTML_FOOTER "\r\n</body></html>\r\n"
+
 #define HTML_FORM \
 	HTML_HEADER \
 	"<form method=\"post\">" \
