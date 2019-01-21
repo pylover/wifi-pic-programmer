@@ -33,15 +33,31 @@ sp_setup_mdns() {
 	espconn_mdns_init(&mdns);
 }
 
+
 static ICACHE_FLASH_ATTR
 unsigned char * serialize_uint32(unsigned char *buffer, uint32_t value)
 {
-  /* Write big-endian int value into buffer; assumes 32-bit int and 8-bit char. */
+  /* write big-endian int value into buffer; assumes 32-bit int and 8-bit char. */
   buffer[0] = value >> 24;
   buffer[1] = value >> 16;
   buffer[2] = value >> 8;
   buffer[3] = value;
   return buffer + 4;
+}
+
+
+static ICACHE_FLASH_ATTR
+uint32_t deserialize_uint32(const unsigned char *buffer)
+{
+	uint32_t c;
+	c = buffer[0];
+	c <<= 8;
+	c |= buffer[1];
+	c <<= 8;
+	c |= buffer[2];
+	c <<= 8;
+	c |= buffer[3];
+	return c;
 }
 
 
@@ -115,7 +131,7 @@ sp_process_request(SPPacket *req) {
 
 
 static SPError ICACHE_FLASH_ATTR
-sp_read_request_body(const char *data, uint16_t length, SPPacket *req) {
+sp_read_request_body(const unsigned char *data, uint16_t length, SPPacket *req) {
 	uint32_t remaining_bytes = req->head.body_length - sp_reading_bytes;
 	
 	if (remaining_bytes < length) {
@@ -135,7 +151,7 @@ sp_read_request_body(const char *data, uint16_t length, SPPacket *req) {
 
 
 static SPError ICACHE_FLASH_ATTR
-sp_parse_request(const char *data, uint16_t length) {
+sp_parse_request(const unsigned char *data, uint16_t length) {
 	SPPacket *req = &sp_current_request; 
 	
 	// Append to read buffer if status is reading
@@ -149,7 +165,9 @@ sp_parse_request(const char *data, uint16_t length) {
 		return SP_ERR_REQ_LEN;
 	}
 	sp_cleanup_request();
-	os_memcpy(&(req->head), data, 5);
+	req->head.command = data[0];
+	req->head.body_length = deserialize_uint32(data+1);
+	//os_memcpy(&(req->head), data, 5);
 
 	// Body, if available
 	if (req->head.body_length) {
@@ -164,7 +182,7 @@ sp_parse_request(const char *data, uint16_t length) {
 
 static void ICACHE_FLASH_ATTR
 sp_tcpserver_recv(void *arg, char *data, uint16_t length) {
-	SPError err = sp_parse_request(data, length);
+	SPError err = sp_parse_request((unsigned char*)data, length);
 	if(SP_OK != err) {
 		os_printf("Cannot parse request\r\n");
 		sp_cleanup_request();
