@@ -150,7 +150,7 @@ flash_map3:
 		0x0 	../bin/boot_v1.7.bin \
 		0x1000  ../bin/upgrade/user1.2048.new.3.bin \
 		0x1fc000 ../bin/esp_init_data_default_v08.bin \
-		0x1fb000 ../bin/blank.bin 
+		0x1fb000 ../bin/blank.bin
 
 	#	0x1fe000 ../bin/blank.bin
 

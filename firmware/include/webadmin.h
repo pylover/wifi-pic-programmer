@@ -23,5 +23,6 @@ typedef err_t Error;
 
 
 void webadmin_initialize();
+void webadmin_shutdown();
 
 #endif

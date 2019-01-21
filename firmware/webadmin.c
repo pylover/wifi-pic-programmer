@@ -38,8 +38,7 @@
 	HTML_FOOTER
 
 
-static struct espconn esp_conn;
-static esp_tcp esptcp;
+static struct espconn * esp_conn;
 
 
 static void ICACHE_FLASH_ATTR
@@ -68,7 +67,7 @@ webadmin_send_response(bool ok, const char *response_buffer) {
         os_memcpy(send_buffer+head_length, response_buffer, response_length);
     }
 
-	espconn_sent(&esp_conn, send_buffer, total_length);
+	espconn_sent(esp_conn, send_buffer, total_length);
     os_free(send_buffer);
 }
 
@@ -241,11 +240,21 @@ void webadmin_webserver_listen(void *arg)
 
 void ICACHE_FLASH_ATTR
 webadmin_initialize() {
-    esp_conn.type = ESPCONN_TCP;
-    esp_conn.state = ESPCONN_NONE;
-    esp_conn.proto.tcp = &esptcp;
-    esp_conn.proto.tcp->local_port = WA_HTTPSERVER_PORT;
-    espconn_regist_connectcb(&esp_conn, webadmin_webserver_listen);
-    espconn_accept(&esp_conn);
+	esp_conn = (struct espconn*) os_zalloc(sizeof(struct espconn));
+    esp_conn->type = ESPCONN_TCP;
+    esp_conn->state = ESPCONN_NONE;
+    esp_conn->proto.tcp = (esp_tcp*) os_zalloc(sizeof(esp_tcp));
+    esp_conn->proto.tcp->local_port = WA_HTTPSERVER_PORT;
+    espconn_regist_connectcb(esp_conn, webadmin_webserver_listen);
+    espconn_accept(esp_conn);
 }
 
+
+void ICACHE_FLASH_ATTR
+webadmin_shutdown() {
+	espconn_abort(esp_conn);
+	espconn_delete(esp_conn);
+	os_free(esp_conn->proto.tcp);
+	os_free(esp_conn);
+	esp_conn = NULL;
+}
