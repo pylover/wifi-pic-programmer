@@ -1,14 +1,12 @@
-#ifndef _PROGRAMMER_H__
-#define _PROGRAMMER_H__
+/* Serial Programmer main module's header */
+
+#ifndef _SP_H__
+#define _SP_H__
 
 #include <c_types.h>
 
 #ifndef SP_VERBOSE
 #define SP_VERBOSE	true
-#endif
-
-#ifndef SP_TCPSERVER_PORT
-#define SP_TCPSERVER_PORT	8585
 #endif
 
 #define SP_VERSION	"0.1.0a"
