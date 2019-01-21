@@ -1,11 +1,9 @@
 #ifndef _WEBADMIN_H__
 #define _WEBADMIN_H__
 
-#include <espconn.h>
-
 
 #define WA_HTTPSERVER_PORT 80
-#define OK 0
+#define WA_OK 0
 
 
 typedef enum httpverb {
@@ -19,7 +17,8 @@ typedef struct request {
 	uint16_t body_length;
 } Request;
 
-typedef err_t Error;
+
+typedef uint8_t Error;
 
 
 void webadmin_initialize();
