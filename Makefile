@@ -130,6 +130,7 @@ sinclude $(PDIR)Makefile
 ESPTOOL = esptool.py --baud 115200 write_flash -u --flash_mode qio \
 		  --flash_freq 40m
 
+# 1024KB( 512KB+ 512KB)
 flash_map2:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=2
@@ -141,6 +142,7 @@ flash_map2:
 		0xfe000 ../bin/blank.bin
 
 
+# 2048KB( 512KB+ 512KB)
 flash_map3:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=3
@@ -152,6 +154,7 @@ flash_map3:
 
 	#	0x1fe000 ../bin/blank.bin
 
+# 4096KB( 512KB+ 512KB)
 flash_map4:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=4
@@ -162,23 +165,25 @@ flash_map4:
 		0x3fb000 ../bin/blank.bin
 	#	0x3fe000 ../bin/blank.bin 
 
+# 2048KB(1024KB+1024KB)
 flash_map5:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=5
-	$(ESPTOOL) --flash_size 2MB  \
+	$(ESPTOOL) --flash_size 16m-c1  \
 		0x0 	../bin/boot_v1.2.bin \
 		0x1000  ../bin/upgrade/user1.2048.new.5.bin \
 		0x1fc000 ../bin/esp_init_data_default_v05.bin \
 		0x1fb000 ../bin/blank.bin \
 		0x1fe000 ../bin/blank.bin 
 
+# 4096KB(1024KB+1024KB)
 flash_map6:
 	make clean
 	make COMPILE=gcc BOOT=new APP=1 SPI_SPEED=40 SPI_MODE=QIO SPI_SIZE_MAP=6
-	$(ESPTOOL) --flash_size 4MB  \
+	$(ESPTOOL) --flash_size 32m-c1  \
 		0x0 	../bin/boot_v1.7.bin \
 		0x1000  ../bin/upgrade/user1.4096.new.6.bin \
-		0x3fc000 ../bin/esp_init_data_default_v08.bin
+		0x3fc000 ../bin/esp_init_data_default_v08.bin \
 		0x3fb000 ../bin/blank.bin \
 		0x3fe000 ../bin/blank.bin 
 
