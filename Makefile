@@ -127,7 +127,7 @@ sinclude $(PDIR)Makefile
 .PHONY: flash flash_map2 flash_map3 flash_map5
 
 
-ESPTOOL = esptool.py --baud 115200 write_flash -u --flash_mode qio \
+ESPTOOL = esptool.py --baud 1152000 write_flash -u --flash_mode qio \
 		  --flash_freq 40m
 
 # 1024KB( 512KB+ 512KB)

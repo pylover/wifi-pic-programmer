@@ -22,13 +22,13 @@ typedef enum {
 typedef struct {
 	uint8_t command;
 	uint32_t body_length;
-} SPRequestHead;
+} SPPacketHead;
 
 
 typedef struct {
-	SPRequestHead head;
+	SPPacketHead head;
 	char *body;
-} SPRequest;
+} SPPacket;
 
 
 typedef enum {

@@ -13,7 +13,7 @@
 
 static struct espconn * esp_conn;
 static uint32_t sp_reading_bytes = 0;
-static SPRequest sp_current_request;
+static SPPacket sp_current_request;
 static struct mdns_info mdns; 
 
 
@@ -33,6 +33,16 @@ sp_setup_mdns() {
 	espconn_mdns_init(&mdns);
 }
 
+static ICACHE_FLASH_ATTR
+unsigned char * serialize_uint32(unsigned char *buffer, uint32_t value)
+{
+  /* Write big-endian int value into buffer; assumes 32-bit int and 8-bit char. */
+  buffer[0] = value >> 24;
+  buffer[1] = value >> 16;
+  buffer[2] = value >> 8;
+  buffer[3] = value;
+  return buffer + 4;
+}
 
 
 static void ICACHE_FLASH_ATTR
@@ -42,13 +52,11 @@ sp_send_response(int8_t status, const char *response_buffer,
 	uint32_t total_length = 5 + response_length;
 
 	// Allocate memory for send buffer	
-    char *buffer = (char *)os_zalloc(total_length);
+    unsigned char *buffer = (unsigned char *)os_zalloc(total_length);
 	
-	// Status
+	// Copy 5 bytes of head 
 	buffer[0] = status;
-
-	// Copy 4 bytes for length 
-	os_memcpy(&buffer[1], &response_length, 4);
+	serialize_uint32(buffer + 1, response_length);
 
 	// Body, if provided
     if (response_length > 0) {
@@ -64,7 +72,7 @@ sp_send_response(int8_t status, const char *response_buffer,
 
 
 static SPError ICACHE_FLASH_ATTR
-sp_command_echo(SPRequest *req) {
+sp_command_echo(SPPacket *req) {
 	sp_send_response(SP_OK, req->body, req->head.body_length);
 	return SP_OK;
 }
@@ -76,19 +84,19 @@ sp_cleanup_request() {
 	if (sp_current_request.body) {
 		os_free(sp_current_request.body);
 	}
-	os_memset(&sp_current_request, 0, sizeof(SPRequest));
+	os_memset(&sp_current_request, 0, sizeof(SPPacket));
 }
 
 
 static SPError ICACHE_FLASH_ATTR
-sp_process_request(SPRequest *req) {
+sp_process_request(SPPacket *req) {
 
 #if SP_VERBOSE
-	os_printf("Command: %d", req->head.command);
+	os_printf("Command: %d", req->head.command); 
 	if (req->head.body_length) {
 		char body[req->head.body_length+1]; 
 		os_strcpy(body, req->body);
-		os_printf(" %s", body);
+		os_printf(" len: %d body: %s", req->head.body_length, body);
 	}
 	os_printf("\r\n");
 #endif
@@ -107,7 +115,7 @@ sp_process_request(SPRequest *req) {
 
 
 static SPError ICACHE_FLASH_ATTR
-sp_read_request_body(const char *data, uint16_t length, SPRequest *req) {
+sp_read_request_body(const char *data, uint16_t length, SPPacket *req) {
 	uint32_t remaining_bytes = req->head.body_length - sp_reading_bytes;
 	
 	if (remaining_bytes < length) {
@@ -128,7 +136,7 @@ sp_read_request_body(const char *data, uint16_t length, SPRequest *req) {
 
 static SPError ICACHE_FLASH_ATTR
 sp_parse_request(const char *data, uint16_t length) {
-	SPRequest *req = &sp_current_request; 
+	SPPacket *req = &sp_current_request; 
 	
 	// Append to read buffer if status is reading
 	if (sp_reading_bytes) {
