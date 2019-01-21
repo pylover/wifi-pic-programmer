@@ -2,6 +2,7 @@
 
 #include "sp.h"
 #include "sp_mdns.h"
+#include "sp_tcpserver.h"
 
 #include <osapi.h>
 
@@ -34,7 +35,7 @@ sp_process_request(SPPacket *req) {
 			return SP_ERR_INVALID_COMMAND;
 	}
 
-	sp_cleanup_request(req);
+	sp_tcpserver_cleanup_request(req);
 	return SP_OK;
 }
 
