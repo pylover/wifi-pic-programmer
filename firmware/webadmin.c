@@ -240,11 +240,11 @@ void webadmin_webserver_listen(void *arg)
 
 
 void ICACHE_FLASH_ATTR
-webadmin_init() {
+webadmin_initialize() {
     esp_conn.type = ESPCONN_TCP;
     esp_conn.state = ESPCONN_NONE;
     esp_conn.proto.tcp = &esptcp;
-    esp_conn.proto.tcp->local_port = 80;
+    esp_conn.proto.tcp->local_port = WA_HTTPSERVER_PORT;
     espconn_regist_connectcb(&esp_conn, webadmin_webserver_listen);
     espconn_accept(&esp_conn);
 }

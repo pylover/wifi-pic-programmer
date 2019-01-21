@@ -1,10 +1,12 @@
 #ifndef _WEBADMIN_H__
 #define _WEBADMIN_H__
 
-#define FB_HTTPSERVER_PORT 80
-#define FB_URL_SIZE 10
-
 #include <espconn.h>
+
+
+#define WA_HTTPSERVER_PORT 80
+#define OK 0
+
 
 typedef enum httpverb {
 	GET,
@@ -18,9 +20,8 @@ typedef struct request {
 } Request;
 
 typedef err_t Error;
-#define OK 0
 
 
-void webadmin_init();
+void webadmin_initialize();
 
 #endif
