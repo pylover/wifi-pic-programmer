@@ -2,6 +2,8 @@ from easycli import SubCommand, Argument
 
 
 DEFAULT_TCP_PORT = 8585
+DEFAULT_HOST = 'WPP.local'
+
 
 
 class Programmer(SubCommand):
@@ -17,7 +19,13 @@ class Programmer(SubCommand):
             type=int,
             default=DEFAULT_TCP_PORT,
             help=f'Programmer\'s TCP port, default: {DEFAULT_TCP_PORT}'
+        ),
+        Argument(
+            '-H', '--host',
+            default=DEFAULT_HOST,
+            help=f'Programmer\'s hostname, default: {DEFAULT_HOST}'
         )
+
     ]
 
     def __call__(self, args):
