@@ -7,6 +7,3 @@ __all__ = [
 ]
 
 
-def main(argv):
-    print('main')
-

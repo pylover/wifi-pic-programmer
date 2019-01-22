@@ -1,6 +1,8 @@
 README.md
 setup.py
 picfota/__init__.py
+picfota/easycli.py
+picfota/root.py
 picfota.egg-info/PKG-INFO
 picfota.egg-info/SOURCES.txt
 picfota.egg-info/dependency_links.txt

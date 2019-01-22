@@ -14,7 +14,8 @@ with open(
 
 
 dependencies = [
-    'zeroconf'
+    'zeroconf',
+#    'easycli'
 ]
 
 
@@ -31,7 +32,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'picfota = picfota:main'
+            'picfota = picfota.root:PicFota'
         ]
     },
     license='MIT',
@@ -39,15 +40,11 @@ setup(
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Natural Language :: English',
-        'Development Status :: 5 - Production/Stable',
-        'License :: Other/Proprietary License',
+        'Development Status :: 1 - Planning',
+        #'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3.6',
         'Topic :: Software Development',
-        'Topic :: Internet :: WWW/HTTP',
-        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
-        'Topic :: Internet :: WWW/HTTP :: WSGI :: Application',
-        'Topic :: Software Development :: Libraries',
-        'Topic :: Software Development :: Libraries :: Python Modules',
         ]
     )
