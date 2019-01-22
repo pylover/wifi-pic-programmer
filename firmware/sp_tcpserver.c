@@ -105,8 +105,6 @@ void _client_reconnect(void *arg, sint8 err)
 }
 
 
-
-
 static ICACHE_FLASH_ATTR
 void _client_disconnected(void *arg)
 {

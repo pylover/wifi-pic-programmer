@@ -25,7 +25,7 @@ static void ICACHE_FLASH_ATTR
 wifi_connect_cb(uint8_t status) {
     if(status == STATION_GOT_IP) {
 		os_printf("Wifi connected\r\n");
-		webadmin_shutdown();
+		//webadmin_shutdown();
 		sp_initialize();
     } else {
 		os_printf("Wifi disconnected\r\n");
