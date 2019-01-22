@@ -24,7 +24,7 @@ setup(
     version=package_version,
     author='Vahid Mardani',
     author_email='vahid.mardani@gmail.com',
-    url='http://github.com/Carrene/nanohttp',
+    url='http://github.com/pylover/wifi-pic-programmer',
     description='WIFI PIC programmer',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',  # This is important!
