@@ -29,4 +29,8 @@ class Programmer(SubCommand):
     ]
 
     def __call__(self, args):
+        if args.version:
+            with ClientProtocol() as p:
+                print(p.get_version())
+
         print('Programmer', args)
