@@ -9,11 +9,12 @@
 #define SP_VERBOSE	true
 #endif
 
-#define SP_VERSION	"0.1.0a"
+#define SP_VERSION	"0.1.0"
 
 
 typedef enum {
-	SP_CMD_ECHO = 1
+	SP_CMD_ECHO = 1,
+	SP_CMD_PROGRAMMER_VERSION = 2
 } SPCommand;
 
 

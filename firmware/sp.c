@@ -15,6 +15,13 @@ sp_command_echo(SPPacket *req) {
 
 
 static SPError ICACHE_FLASH_ATTR
+sp_command_programmer_version(SPPacket *req) {
+	sp_tcpserver_response(SP_OK, SP_VERSION, os_strlen(SP_VERSION));
+	return SP_OK;
+}
+
+
+static SPError ICACHE_FLASH_ATTR
 sp_process_request(SPPacket *req) {
 
 #if SP_VERBOSE
@@ -29,6 +36,9 @@ sp_process_request(SPPacket *req) {
 	
 	switch (req->head.command) {
 		case SP_CMD_ECHO:
+			return sp_command_echo(req);
+
+		case SP_CMD_PROGRAMMER_VERSION:
 			return sp_command_echo(req);
 
 		default:
