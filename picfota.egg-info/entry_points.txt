@@ -1,0 +1,3 @@
+[console_scripts]
+picfota = picfota:main
+

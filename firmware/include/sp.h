@@ -33,7 +33,6 @@ typedef enum {
 	SP_OK = 1,
 	SP_ERR_INVALID_COMMAND,
 	SP_ERR_REQ_LEN,
-
 } SPError;
 
 #endif
