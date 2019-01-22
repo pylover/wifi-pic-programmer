@@ -7,10 +7,7 @@ class PicFota(Root):
     __help__ = 'WIFI PIC Programmer'
 
     __arguments__ = [
-        Argument('-V', '--version', action='store_true', help='Show version')
-    ]
-
-    __subcommands__ = [
+        Argument('-V', '--version', action='store_true', help='Show version'),
         Programmer,
     ]
 

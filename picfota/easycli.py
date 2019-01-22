@@ -15,23 +15,26 @@ class Argument:
 
 class Command:
     __arguments__ = []
-    __subcommands__ = None
     __command__ = None
     __help__ = None
 
     def __init__(self):
         self._parser = self._create_parser()
 
+        _subcommands = []
         for a in self.__arguments__:
-            a.register(self._parser)
+            if isinstance(a, Argument):
+                a.register(self._parser)
+            else:
+                _subcommands.append(a)
 
-        if self.__subcommands__:
+        if _subcommands:
             self._subparsers = self._parser.add_subparsers(
                 title='Sub commands',
                 dest='command'
             )
 
-            for p in self.__subcommands__:
+            for p in _subcommands:
                 p(self._subparsers)
 
     def _create_parser(self):
