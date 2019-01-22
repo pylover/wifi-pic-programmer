@@ -1,3 +1,4 @@
+import time
 import struct
 import socket
 
@@ -36,7 +37,7 @@ class Packet:
         if len(head) < 5:
             raise InvalidHeaderLengthError()
 
-        status, length = struct.unpack(self.header_format, head)
+        status, length = struct.unpack(cls.header_format, head)
         if length:
             body = s.recv(length)
         else:

@@ -1,5 +1,7 @@
 from easycli import SubCommand, Argument
 
+from .protocol import ClientProtocol
+
 
 DEFAULT_TCP_PORT = 8585
 DEFAULT_HOST = 'WPP.local'
@@ -30,7 +32,6 @@ class Programmer(SubCommand):
 
     def __call__(self, args):
         if args.version:
-            with ClientProtocol() as p:
+            with ClientProtocol(args.host, args.port) as p:
                 print(p.get_version())
 
-        print('Programmer', args)
