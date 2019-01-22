@@ -5,7 +5,7 @@ from .programmer import Programmer
 
 class PicFota(Root):
     __help__ = 'WIFI PIC Programmer'
-
+    __completion__ = True
     __arguments__ = [
         Argument('-V', '--version', action='store_true', help='Show version'),
         Programmer,
