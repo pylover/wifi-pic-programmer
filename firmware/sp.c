@@ -39,7 +39,7 @@ sp_process_request(SPPacket *req) {
 			return sp_command_echo(req);
 
 		case SP_CMD_PROGRAMMER_VERSION:
-			return sp_command_echo(req);
+			return sp_command_programmer_version(req);
 
 		default:
 			return SP_ERR_INVALID_COMMAND;
