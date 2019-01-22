@@ -1,5 +1,6 @@
 import sys
 import argparse
+import traceback
 from os import path
 
 
@@ -13,7 +14,7 @@ class Argument:
 
 
 class Command:
-    __arguments__ = None
+    __arguments__ = []
     __subcommands__ = None
     __command__ = None
     __help__ = None
@@ -47,9 +48,13 @@ class SubCommand(Command):
         super().__init__()
 
     def _create_parser(self):
+        assert self.__command__, 'Please provide a name for your command' \
+            ' using __command__ class attribute'
+
+
         parser = self._parent_subparsers.add_parser(
             self.__command__,
-            self.__help__
+            help=self.__help__
         )
         parser.set_defaults(func=self)
         return parser

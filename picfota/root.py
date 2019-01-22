@@ -1,6 +1,6 @@
 from .easycli import Root, Argument
 
-#from .firmware import Firmware
+from .programmer import Programmer
 
 
 class PicFota(Root):
@@ -8,6 +8,10 @@ class PicFota(Root):
 
     __arguments__ = [
         Argument('-V', '--version', action='store_true', help='Show version')
+    ]
+
+    __subcommands__ = [
+        Programmer,
     ]
 
     def __call__(self, args):
@@ -18,6 +22,3 @@ class PicFota(Root):
 
         return super().__call__(args)
 
-#    __subcommands__ = [
-#        Firmware,
-#    ]
