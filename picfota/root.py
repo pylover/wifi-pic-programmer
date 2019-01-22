@@ -1,4 +1,4 @@
-from .easycli import Root, Argument
+from easycli import Root, Argument
 
 from .programmer import Programmer
 
