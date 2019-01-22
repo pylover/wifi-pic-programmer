@@ -1,5 +1,8 @@
 .output
 
+# python
+__pycache__
+
 # vim
 .*.sw[po]
 .ropeproject
