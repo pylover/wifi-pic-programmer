@@ -28,26 +28,31 @@ class Programmer(SubCommand):
             help= \
                 f'Programmer\'s hostname. if ends with ".local", the ' \
                 f'hostname and port will be resolved using a mDNS query ' \
-                f'broadcast. default: ${DEFAULT_SERVICE_NAME}'
+                f'broadcast. default: "{DEFAULT_SERVICE_NAME}"'
         ),
         Argument(
             '-f', '--force',
             action='store_true',
-            help='Force to do a mDNS query, and do not use cache'
+            help='Force to do a mDNS query, and do not use hosts cache'
         )
     ]
 
     def __call__(self, args):
-        if args.host.endswith('.local'):
-            with Hosts() as h:
-                if args.force:
-                    h.clear()
-
-                host, port = h[args.host]
-        else:
-            host, port = args.host, args.port
-
+        host, port = self.get_wifi_module_address(args)
+        print(f'Connecting to {host}:{port}')
         with WifiProgrammer(host, port) as p:
             if args.version:
                 print(p.get_version())
+
+    def get_wifi_module_address(self, args):
+        if not args.host.endswith('.local'):
+            return args.host, args.port
+
+        with Hosts() as h:
+            if args.force:
+                h.clear()
+
+            return h[args.host]
+
+
 
