@@ -1,21 +1,23 @@
+#! /usr/bin/env python3
+import socket
+
 from zeroconf import ServiceBrowser, Zeroconf
 
 
-class MyListener:
+def resolve(service_name):
+    host, port = None, 0
 
-    def remove_service(self, zeroconf, type, name):
-        print("Service %s removed" % (name,))
+    class Listener:
 
-    def add_service(self, zeroconf, type, name):
-        info = zeroconf.get_service_info(type, name)
-        print("Service %s added, service info: %s" % (name, info))
+        def add_service(self, zeroconf, type_, name):
+            nonlocal host, port
+            info = zeroconf.get_service_info(type_, name)
+            port = info.port
+            host = socket.inet_ntoa(info.address)
+            zeroconf.close()
 
 
-zeroconf = Zeroconf()
-listener = MyListener()
-browser = ServiceBrowser(zeroconf, '_WPPS._tcp.local.',
-                         listener)
-try:
-    input("Press enter to exit...\n\n")
-finally:
-    zeroconf.close()
+    ServiceBrowser(Zeroconf(), service_name, Listener()).join()
+    return host, port
+
+

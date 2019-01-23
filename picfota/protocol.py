@@ -46,7 +46,7 @@ class Packet:
         return cls(status, body)
 
 
-class ClientProtocol:
+class WifiProgrammer:
     def __init__(self, host, port):
         self.host = host
         self.port = port

@@ -1,6 +1,6 @@
 from easycli import SubCommand, Argument
 
-from .protocol import ClientProtocol
+from .protocol import WifiProgrammer
 
 
 DEFAULT_TCP_PORT = 8585
@@ -31,7 +31,8 @@ class Programmer(SubCommand):
     ]
 
     def __call__(self, args):
-        if args.version:
-            with ClientProtocol(args.host, args.port) as p:
+        resolve('_WPPS._tcp.local.')
+        with WifiProgrammer(args.host, args.port) as p:
+            if args.version:
                 print(p.get_version())
 
