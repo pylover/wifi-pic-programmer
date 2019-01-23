@@ -3,19 +3,17 @@ static int _state;
 static uint64_t _program_counter; 
 
 
-
-
 // Send a command to the PIC.
-void sendCommand(byte cmd)
+void _send_command(uint8_t cmd)
 {
     for (byte bit = 0; bit < 6; ++bit) {
-        digitalWrite(PIN_CLOCK, HIGH);
+        GPIO_SET(CLOCK_NUM, HIGH);
         if (cmd & 1)
-            digitalWrite(PIN_DATA, HIGH);
+            GPIO_SET(DATA_NUM, HIGH);
         else
-            digitalWrite(PIN_DATA, LOW);
+            GPIO_SET(DATA_NUM, LOW);
         os_delay_us(DELAY_TSET1);
-        digitalWrite(PIN_CLOCK, LOW);
+        GPIO_SET(CLOCK_NUM, LOW);
         os_delay_us(DELAY_THLD1);
         cmd >>= 1;
     }
@@ -23,24 +21,24 @@ void sendCommand(byte cmd)
 
 
 // Send a command to the PIC that has no arguments.
-void sendSimpleCommand(byte cmd) {
-    sendCommand(cmd);
+void _send_simple_command(uint8_t cmd) {
+    _send_command(cmd);
     os_delay_us(DELAY_TDLY2);
 }
 
 
 // Send a command to the PIC that writes a data argument.
-void sendWriteCommand(byte cmd, unsigned int data) {
-    sendCommand(cmd);
+void _send_write_command(uint8_t cmd, uint32_t data) {
+    _send_command(cmd);
     os_delay_us(DELAY_TDLY2);
     for (byte bit = 0; bit < 16; ++bit) {
-        digitalWrite(PIN_CLOCK, HIGH);
+        GPIO_SET(CLOCK_NUM, HIGH);
         if (data & 1)
-            digitalWrite(PIN_DATA, HIGH);
+            GPIO_SET(DATA_NUM, HIGH);
         else
-            digitalWrite(PIN_DATA, LOW);
+            GPIO_SET(DATA_NUM, LOW);
         os_delay_us(DELAY_TSET1);
-        digitalWrite(PIN_CLOCK, LOW);
+        GPIO_SET(CLOCK_NUM, LOW);
         os_delay_us(DELAY_THLD1);
         data >>= 1;
     }
@@ -50,22 +48,23 @@ void sendWriteCommand(byte cmd, unsigned int data) {
 
 // Send a command to the PIC that reads back a data value.
 uint32_t sendReadCommand(byte cmd) {
-    unsigned int data = 0;
-    sendCommand(cmd);
-    digitalWrite(PIN_DATA, LOW);
+    uint32_t data = 0;
+    _send_command(cmd);
+    GPIO_SET(DATA_NUM, LOW);
     GPIO_INPUT(DATA_NUM);
     os_delay_us(DELAY_TDLY2);
     for (byte bit = 0; bit < 16; ++bit) {
         data >>= 1;
         GPIO_SET(CLOCK_NUM, HIGH);
         os_delay_us(DELAY_TDLY3);
-        if (GPIO_GET(DATA_NUM))
+        if (GPIO_GET(DATA_NUM)) {
             data |= 0x8000;
+		}
 
         GPIO_SET(CLOCK_NUM, LOW);
         os_delay_us(DELAY_THLD1);
     }
-    GPIO_OUTPUT(DATA_NUM, 1);
+    GPIO_OUTPUT(DATA_NUM);
     os_delay_us(DELAY_TDLY2);
     return data;
 }
