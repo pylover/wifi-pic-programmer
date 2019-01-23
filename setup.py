@@ -15,7 +15,8 @@ with open(
 
 dependencies = [
     'zeroconf',
-    'easycli'
+    'easycli',
+    'appdirs'
 ]
 
 

@@ -1,4 +1,3 @@
-#! /usr/bin/env python3
 import socket
 
 from zeroconf import ServiceBrowser, Zeroconf
@@ -19,5 +18,4 @@ def resolve(service_name):
 
     ServiceBrowser(Zeroconf(), service_name, Listener()).join()
     return host, port
-
 
