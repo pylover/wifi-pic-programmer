@@ -1,46 +1,319 @@
+#include "sp_pic_io.h"
+#include "sp_pic_devices.h"
+
+#include <c_types.h>
+
+
+static int _state;
+static uint64_t _program_counter; 
+
+
+// Flat address ranges for the various memory spaces.  Defaults to the values
+// for the PIC16F628A.  "DEVICE" command updates to the correct values later.
+static uint64_t programEnd			 = 0x07FF;
+static uint64_t configStart  		 = 0x2000;
+static uint64_t configEnd    		 = 0x2007;
+static uint64_t dataStart    		 = 0x2100;
+static uint64_t dataEnd      		 = 0x217F;
+static uint64_t reservedStart		 = 0x0800;
+static uint64_t reservedEnd  		 = 0x07FF;
+static uint32_t configSave   		 = 0x0000;
+static uint8_t progFlashType        = FLASH4;
+static uint8_t dataFlashType        = EEPROM;
+
+
+// Enter high voltage programming mode.
+static ICACHE_FLASH_ATTR
+void _enter_programMode() {
+    // Bail out if already in programming mode.
+    if (state != STATE_IDLE)
+        return;
+    // Lower MCLR, VDD, DATA, and CLOCK initially.  This will put the
+    // PIC into the powered-off, reset state just in case.
+    GPIO_SET(MCLR_NUM, MCLR_RESET);
+    GPIO_SET(VDD_NUM, LOW);
+    GPIO_SET(CLOCK_NUM, LOW);
+    GPIO_SET(PIN_CLOCK, LOW);
+    // Wait for the lines to settle.
+    delayMicroseconds(DELAY_SETTLE);
+    // Switch DATA and CLOCK into outputs.
+    pinMode(CLOCK_NUM, OUTPUT);
+    pinMode(PIN_CLOCK, OUTPUT);
+    // Raise MCLR, then VDD.
+    GPIO_SET(MCLR_NUM, MCLR_VPP);
+    delayMicroseconds(DELAY_TPPDP);
+    GPIO_SET(VDD_NUM, HIGH);
+    delayMicroseconds(DELAY_THLD0);
+    // Now in program mode, starting at the first word of program memory.
+    state = STATE_PROGRAM;
+    pc = 0;
+}
+
+
+// Exit programming mode and reset the device.
+static ICACHE_FLASH_ATTR
+void _exit_programMode() {
+    // Nothing to do if already out of programming mode.
+    if (state == STATE_IDLE)
+        return;
+    // Lower MCLR, VDD, DATA, and CLOCK.
+    GPIO_SET(MCLR_NUM, MCLR_RESET);
+    GPIO_SET(VDD_NUM, LOW);
+    GPIO_SET(CLOCK_NUM, LOW);
+    GPIO_SET(PIN_CLOCK, LOW);
+    // Float the DATA and CLOCK pins.
+    pinMode(CLOCK_NUM, INPUT);
+    pinMode(PIN_CLOCK, INPUT);
+    // Now in the idle state with the PIC powered off.
+    state = STATE_IDLE;
+    pc = 0;
+}
+
+
+// Send a command to the PIC.
+static ICACHE_FLASH_ATTR
+void _send_command(uint8_t cmd) {
+	uint8_t bit;
+    for (bit = 0; bit < 6; ++bit) {
+        GPIO_SET(CLOCK_NUM, HIGH);
+        if (cmd & 1)
+            GPIO_SET(DATA_NUM, HIGH);
+        else
+            GPIO_SET(DATA_NUM, LOW);
+        os_delay_us(DELAY_TSET1);
+        GPIO_SET(CLOCK_NUM, LOW);
+        os_delay_us(DELAY_THLD1);
+        cmd >>= 1;
+    }
+}
+
+
+// Send a command to the PIC that has no arguments.
+static ICACHE_FLASH_ATTR
+void _send_simple_command(uint8_t cmd) {
+    _send_command(cmd);
+    os_delay_us(DELAY_TDLY2);
+}
+
+
+// Send a command to the PIC that writes a data argument.
+static ICACHE_FLASH_ATTR
+void _send_write_command(uint8_t cmd, uint32_t data) {
+	uint8_t bit;
+    _send_command(cmd);
+    os_delay_us(DELAY_TDLY2);
+    for (bit = 0; bit < 16; ++bit) {
+        GPIO_SET(CLOCK_NUM, HIGH);
+        if (data & 1)
+            GPIO_SET(DATA_NUM, HIGH);
+        else
+            GPIO_SET(DATA_NUM, LOW);
+        os_delay_us(DELAY_TSET1);
+        GPIO_SET(CLOCK_NUM, LOW);
+        os_delay_us(DELAY_THLD1);
+        data >>= 1;
+    }
+    os_delay_us(DELAY_TDLY2);
+}
+
+
+// Send a command to the PIC that reads back a data value.
+static ICACHE_FLASH_ATTR
+uint32_t _send_read_command(uint8_t cmd) {
+	uint8_t bit;
+    uint32_t data = 0;
+    _send_command(cmd);
+    GPIO_SET(DATA_NUM, LOW);
+    GPIO_INPUT(DATA_NUM);
+    os_delay_us(DELAY_TDLY2);
+    for (bit = 0; bit < 16; ++bit) {
+        data >>= 1;
+        GPIO_SET(CLOCK_NUM, HIGH);
+        os_delay_us(DELAY_TDLY3);
+        if (GPIO_GET(DATA_NUM)) {
+            data |= 0x8000;
+		}
+
+        GPIO_SET(CLOCK_NUM, LOW);
+        os_delay_us(DELAY_THLD1);
+    }
+    GPIO_OUTPUT(DATA_NUM);
+    os_delay_us(DELAY_TDLY2);
+    return data;
+}
+
+
+/*
+ * Read a word from config memory using relative, non-flat, addressing.
+ * Used by the "DEVICE" command to fetch information about devices whose
+ * flat address ranges are presently unknown.
+ */
+static ICACHE_FLASH_ATTR
+uint32_t sp_pic_io_read_config_word(uint64_t addr)
+{
+    if (_state == STATE_IDLE) {
+        // Enter programming mode and switch to config memory.
+        _enter_program_mode();
+        _send_write_command(CMD_LOAD_CONFIG, 0);
+        _state = STATE_CONFIG;
+    } else if (_state == STATE_PROGRAM) {
+        // Switch from program memory to config memory.
+        _send_write_command(CMD_LOAD_CONFIG, 0);
+        _state = STATE_CONFIG;
+        _program_counter = 0;
+    } else if (addr < _program_counter) {
+        // Need to go backwards in config memory, so reset the device.
+        _exit_program_mode();
+        _enter_program_mode();
+        _send_write_command(CMD_LOAD_CONFIG, 0);
+        _state = STATE_CONFIG;
+    }
+    while (_program_counter < addr) {
+        _send_simple_command(CMD_INCREMENT_ADDRESS);
+        _program_counter++;
+    }
+    return (_send_read_command(CMD_READ_PROGRAM_MEMORY) >> 1) & 0x3FFF;
+}
 
 // Initialize device properties from the "devices" list and
 // print them to the serial port.  Note: "dev" is in PROGMEM.
-void initDevice(const struct deviceInfo *dev)
+ICACHE_FLASH_ATTR
+void sp_pic_init_device(const struct deviceInfo *dev)
 {
     // Update the global device details.
-    programEnd = pgm_read_dword(&(dev->programSize)) - 1;
-    configStart = pgm_read_dword(&(dev->configStart));
-    configEnd = configStart + pgm_read_word(&(dev->configSize)) - 1;
-    dataStart = pgm_read_dword(&(dev->dataStart));
-    dataEnd = dataStart + pgm_read_word(&(dev->dataSize)) - 1;
-    reservedStart = programEnd - pgm_read_word(&(dev->reservedWords)) + 1;
+    programEnd = dev->programSize - 1;
+    configStart = dev->configStart;
+    configEnd = configStart + dev->configSize - 1;
+    dataStart = dev->dataStart;
+    dataEnd = dataStart + dev->dataSize - 1;
+    reservedStart = programEnd - dev->reservedWords + 1;
     reservedEnd = programEnd;
-    configSave = pgm_read_word(&(dev->configSave));
-    progFlashType = pgm_read_byte(&(dev->progFlashType));
-    dataFlashType = pgm_read_byte(&(dev->dataFlashType));
+    configSave = dev->configSave;
+    progFlashType = dev->progFlashType;
+    dataFlashType = dev->dataFlashType;
     // Print the extra device information.
-    Serial.print("DeviceName: ");
-    printProgString((const prog_char *)(pgm_read_word(&(dev->name))));
-    Serial.println();
-    Serial.print("ProgramRange: 0000-");
+	os_printf("DeviceName: %s", dev->name);
+    os_printf("\r\n");
+    os_printf("ProgramRange: 0000-");
     printHex8(programEnd);
-    Serial.println();
-    Serial.print("ConfigRange: ");
+    os_printf("\r\n");
+    os_printf("ConfigRange: ");
     printHex8(configStart);
-    Serial.print('-');
+    os_printf("-");
     printHex8(configEnd);
-    Serial.println();
+    os_printf("\r\n");
     if (configSave != 0) {
-        Serial.print("ConfigSave: ");
+        os_printf("ConfigSave: ");
         printHex4(configSave);
-        Serial.println();
+        os_printf("\r\n");
     }
-    Serial.print("DataRange: ");
+    os_printf("DataRange: ");
     printHex8(dataStart);
-    Serial.print('-');
+    os_printf("-");
     printHex8(dataEnd);
-    Serial.println();
+    os_printf("\r\n");
     if (reservedStart <= reservedEnd) {
-        Serial.print("ReservedRange: ");
+        os_printf("ReservedRange: ");
         printHex8(reservedStart);
-        Serial.print('-');
+		os_printf("-");
         printHex8(reservedEnd);
-        Serial.println();
+        os_printf("\r\n");
     }
 }
+
+// DEVICE command.
+ICACHE_FLASH_ATTR
+void sp_pic_cmd_device(const char *args)
+{
+    // Make sure the device is reset before we start.
+    exitProgramMode();
+    // Read identifiers and configuration words from config memory.
+    unsigned int userid0 = readConfigWord(DEV_USERID0);
+    unsigned int userid1 = readConfigWord(DEV_USERID1);
+    unsigned int userid2 = readConfigWord(DEV_USERID2);
+    unsigned int userid3 = readConfigWord(DEV_USERID3);
+    unsigned int deviceId = readConfigWord(DEV_ID);
+    unsigned int configWord = readConfigWord(DEV_CONFIG_WORD);
+    // If the device ID is all-zeroes or all-ones, then it could mean
+    // one of the following:
+    //
+    // 1. There is no PIC in the programming socket.
+    // 2. The VPP programming voltage is not available.
+    // 3. Code protection is enabled and the PIC is unreadable.
+    // 4. The PIC is an older model with no device identifier.
+    //
+    // Case 4 is the interesting one.  We look for any word in configuration
+    // memory or the first 16 words of program memory that is non-zero.
+    // If we find a non-zero word, we assume that we have a PIC but we
+    // cannot detect what type it is.
+    if (deviceId == 0 || deviceId == 0x3FFF) {
+        unsigned int word = userid0 | userid1 | userid2 | userid3 | configWord;
+        unsigned int addr = 0;
+        while (!word && addr < 16) {
+            word |= readWord(addr);
+            ++addr;
+        }
+        if (!word) {
+            os_printf("ERROR\r\n");
+            exitProgramMode();
+            return;
+        }
+        deviceId = 0;
+    }
+    os_printf("OK\r\n");
+    os_printf("DeviceID: ");
+    printHex4(deviceId);
+    os_printf("\r\n");
+    // Find the device in the built-in list if we have details for it.
+    int index = 0;
+    for (;;) {
+        const char *name = (const char *)
+            (devices[index].name);
+        if (!name) {
+            index = -1;
+            break;
+        }
+        int id = devices[index].deviceId;
+        if (id == (deviceId & 0xFFE0))
+            break;
+        ++index;
+    }
+    if (index >= 0) {
+        initDevice(&(devices[index]));
+    } else {
+        // Reset the global parameters to their defaults.  A separate
+        // "SETDEVICE" command will be needed to set the correct values.
+        programEnd    = 0x07FF;
+        configStart   = 0x2000;
+        configEnd     = 0x2007;
+        dataStart     = 0x2100;
+        dataEnd       = 0x217F;
+        reservedStart = 0x0800;
+        reservedEnd   = 0x07FF;
+        configSave    = 0x0000;
+        progFlashType = FLASH4;
+        dataFlashType = EEPROM;
+    }
+    os_printf("ConfigWord: ");
+    printHex4(configWord);
+    os_printf("\r\n");
+    os_printf(".\r\n");
+    // Don't need programming mode once the details have been read.
+    exitProgramMode();
+}
+
+
+ICACHE_FLASH_ATTR
+void sp_pic_inititialize() {
+	PIN_FUNC_SELECT(DATA_MUX, DATA_FUNC);
+	PIN_PULLUP_EN(DATA_MUX);
+	GPIO_OUTPUT(DATA_NUM);
+}
+
+
+ICACHE_FLASH_ATTR
+void sp_pic_shutdown() {
+	// Do nothing here for now
+}
+
+

@@ -7,22 +7,22 @@
 #include <osapi.h>
 
 
-static SPError ICACHE_FLASH_ATTR
-sp_command_echo(SPPacket *req) {
+static ICACHE_FLASH_ATTR
+SPError sp_command_echo(SPPacket *req) {
 	sp_tcpserver_response(SP_OK, req->body, req->head.body_length);
 	return SP_OK;
 }
 
 
-static SPError ICACHE_FLASH_ATTR
-sp_command_programmer_version(SPPacket *req) {
+static ICACHE_FLASH_ATTR
+SPError sp_command_programmer_version(SPPacket *req) {
 	sp_tcpserver_response(SP_OK, SP_VERSION, os_strlen(SP_VERSION));
 	return SP_OK;
 }
 
 
-static SPError ICACHE_FLASH_ATTR
-sp_process_request(SPPacket *req) {
+static ICACHE_FLASH_ATTR
+SPError sp_process_request(SPPacket *req) {
 
 #if SP_VERBOSE
 	os_printf("Command: %d", req->head.command); 
