@@ -1,103 +1,46 @@
 
-static int _state;
-static uint64_t _program_counter; 
-
-
-// Send a command to the PIC.
-void _send_command(uint8_t cmd)
+// Initialize device properties from the "devices" list and
+// print them to the serial port.  Note: "dev" is in PROGMEM.
+void initDevice(const struct deviceInfo *dev)
 {
-    for (byte bit = 0; bit < 6; ++bit) {
-        GPIO_SET(CLOCK_NUM, HIGH);
-        if (cmd & 1)
-            GPIO_SET(DATA_NUM, HIGH);
-        else
-            GPIO_SET(DATA_NUM, LOW);
-        os_delay_us(DELAY_TSET1);
-        GPIO_SET(CLOCK_NUM, LOW);
-        os_delay_us(DELAY_THLD1);
-        cmd >>= 1;
+    // Update the global device details.
+    programEnd = pgm_read_dword(&(dev->programSize)) - 1;
+    configStart = pgm_read_dword(&(dev->configStart));
+    configEnd = configStart + pgm_read_word(&(dev->configSize)) - 1;
+    dataStart = pgm_read_dword(&(dev->dataStart));
+    dataEnd = dataStart + pgm_read_word(&(dev->dataSize)) - 1;
+    reservedStart = programEnd - pgm_read_word(&(dev->reservedWords)) + 1;
+    reservedEnd = programEnd;
+    configSave = pgm_read_word(&(dev->configSave));
+    progFlashType = pgm_read_byte(&(dev->progFlashType));
+    dataFlashType = pgm_read_byte(&(dev->dataFlashType));
+    // Print the extra device information.
+    Serial.print("DeviceName: ");
+    printProgString((const prog_char *)(pgm_read_word(&(dev->name))));
+    Serial.println();
+    Serial.print("ProgramRange: 0000-");
+    printHex8(programEnd);
+    Serial.println();
+    Serial.print("ConfigRange: ");
+    printHex8(configStart);
+    Serial.print('-');
+    printHex8(configEnd);
+    Serial.println();
+    if (configSave != 0) {
+        Serial.print("ConfigSave: ");
+        printHex4(configSave);
+        Serial.println();
+    }
+    Serial.print("DataRange: ");
+    printHex8(dataStart);
+    Serial.print('-');
+    printHex8(dataEnd);
+    Serial.println();
+    if (reservedStart <= reservedEnd) {
+        Serial.print("ReservedRange: ");
+        printHex8(reservedStart);
+        Serial.print('-');
+        printHex8(reservedEnd);
+        Serial.println();
     }
 }
-
-
-// Send a command to the PIC that has no arguments.
-void _send_simple_command(uint8_t cmd) {
-    _send_command(cmd);
-    os_delay_us(DELAY_TDLY2);
-}
-
-
-// Send a command to the PIC that writes a data argument.
-void _send_write_command(uint8_t cmd, uint32_t data) {
-    _send_command(cmd);
-    os_delay_us(DELAY_TDLY2);
-    for (byte bit = 0; bit < 16; ++bit) {
-        GPIO_SET(CLOCK_NUM, HIGH);
-        if (data & 1)
-            GPIO_SET(DATA_NUM, HIGH);
-        else
-            GPIO_SET(DATA_NUM, LOW);
-        os_delay_us(DELAY_TSET1);
-        GPIO_SET(CLOCK_NUM, LOW);
-        os_delay_us(DELAY_THLD1);
-        data >>= 1;
-    }
-    os_delay_us(DELAY_TDLY2);
-}
-
-
-// Send a command to the PIC that reads back a data value.
-uint32_t sendReadCommand(byte cmd) {
-    uint32_t data = 0;
-    _send_command(cmd);
-    GPIO_SET(DATA_NUM, LOW);
-    GPIO_INPUT(DATA_NUM);
-    os_delay_us(DELAY_TDLY2);
-    for (byte bit = 0; bit < 16; ++bit) {
-        data >>= 1;
-        GPIO_SET(CLOCK_NUM, HIGH);
-        os_delay_us(DELAY_TDLY3);
-        if (GPIO_GET(DATA_NUM)) {
-            data |= 0x8000;
-		}
-
-        GPIO_SET(CLOCK_NUM, LOW);
-        os_delay_us(DELAY_THLD1);
-    }
-    GPIO_OUTPUT(DATA_NUM);
-    os_delay_us(DELAY_TDLY2);
-    return data;
-}
-
-
-/*
- * Read a word from config memory using relative, non-flat, addressing.
- * Used by the "DEVICE" command to fetch information about devices whose
- * flat address ranges are presently unknown.
- */
-uint32_t sp_pic_read_config_word(uint64_t addr)
-{
-    if (_state == STATE_IDLE) {
-        // Enter programming mode and switch to config memory.
-        _enter_program_mode();
-        _send_write_command(CMD_LOAD_CONFIG, 0);
-        _state = STATE_CONFIG;
-    } else if (state == STATE_PROGRAM) {
-        // Switch from program memory to config memory.
-        _send_write_command(CMD_LOAD_CONFIG, 0);
-        _state = STATE_CONFIG;
-        _program_counter = 0;
-    } else if (addr < pc) {
-        // Need to go backwards in config memory, so reset the device.
-        _exit_program_mode();
-        _enter_program_mode();
-        _send_write_command(CMD_LOAD_CONFIG, 0);
-        _state = STATE_CONFIG;
-    }
-    while (pc < addr) {
-        _send_simple_command(CMD_INCREMENT_ADDRESS);
-        _program_counter++;
-    }
-    return (_send_read_command(CMD_READ_PROGRAM_MEMORY) >> 1) & 0x3FFF;
-}
-

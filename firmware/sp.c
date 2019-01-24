@@ -54,11 +54,13 @@ void ICACHE_FLASH_ATTR
 sp_initialize() {
 	sp_mdns_setup();
 	sp_tcpserver_initialize(sp_process_request);
+	sp_pic_initialize();
 }
 
 
 void ICACHE_FLASH_ATTR
 sp_shutdown() {
+	sp_pic_shutdown();
 	espconn_mdns_close();
 	sp_tcpserver_shutdown();
 }
