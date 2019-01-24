@@ -14,6 +14,18 @@
 #define CLOCK_NUM			5
 #define CLOCK_FUNC			FUNC_GPIO5
 
+#define MCLR_MUX			PERIPHS_IO_MUX_GPIO6_U
+#define MCLR_NUM			6
+#define MCLR_FUNC			FUNC_GPIO6
+
+#define VPP_MUX				PERIPHS_IO_MUX_GPIO7_U
+#define VPP_NUM				7
+#define VPP_FUNC			FUNC_GPIO7
+
+#define VDD_MUX				PERIPHS_IO_MUX_GPIO7_U
+#define VDD_NUM				7
+#define VDD_FUNC			FUNC_GPIO7
+
 
 #define LOW 0
 #define HIGH 1
@@ -21,6 +33,10 @@
 #define GPIO_GET(n) GPIO_INPUT_GET(GPIO_ID_PIN(n))
 #define GPIO_INPUT(n) GPIO_DIS_OUTPUT(GPIO_ID_PIN(n))
 #define GPIO_OUTPUT(n) GPIO_SET(n, LOW)
+
+
+#define MCLR_RESET      HIGH    // PIN_MCLR state to reset the PIC
+#define MCLR_VPP        LOW     // PIN_MCLR state to apply 13v to MCLR/VPP pin
 
 
 // All delays are in microseconds.

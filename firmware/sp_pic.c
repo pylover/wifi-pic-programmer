@@ -18,55 +18,81 @@ static uint64_t dataEnd      		 = 0x217F;
 static uint64_t reservedStart		 = 0x0800;
 static uint64_t reservedEnd  		 = 0x07FF;
 static uint32_t configSave   		 = 0x0000;
-static uint8_t progFlashType        = FLASH4;
-static uint8_t dataFlashType        = EEPROM;
+static uint8_t progFlashType		= FLASH4;
+static uint8_t dataFlashType		= EEPROM;
 
+
+static ICACHE_FLASH_ATTR
+void printHex1(unsigned int value) {
+    if (value >= 10)
+        os_printf("%s", (char)('A' + value - 10));
+    else
+        os_printf("%s", (char)('0' + value));
+}
+
+
+static ICACHE_FLASH_ATTR
+void printHex4(unsigned int word) {
+    printHex1((word >> 12) & 0x0F);
+    printHex1((word >> 8) & 0x0F);
+    printHex1((word >> 4) & 0x0F);
+    printHex1(word & 0x0F);
+}
+
+
+static ICACHE_FLASH_ATTR
+void printHex8(unsigned long word) {
+    unsigned int upper = (unsigned int)(word >> 16);
+    if (upper)
+        printHex4(upper);
+    printHex4((unsigned int)word);
+}
 
 // Enter high voltage programming mode.
 static ICACHE_FLASH_ATTR
-void _enter_programMode() {
+void _enter_program_mode() {
     // Bail out if already in programming mode.
-    if (state != STATE_IDLE)
+    if (_state != STATE_IDLE)
         return;
     // Lower MCLR, VDD, DATA, and CLOCK initially.  This will put the
     // PIC into the powered-off, reset state just in case.
     GPIO_SET(MCLR_NUM, MCLR_RESET);
     GPIO_SET(VDD_NUM, LOW);
+    GPIO_SET(DATA_NUM, LOW);
     GPIO_SET(CLOCK_NUM, LOW);
-    GPIO_SET(PIN_CLOCK, LOW);
     // Wait for the lines to settle.
-    delayMicroseconds(DELAY_SETTLE);
+    os_delay_us(DELAY_SETTLE);
     // Switch DATA and CLOCK into outputs.
-    pinMode(CLOCK_NUM, OUTPUT);
-    pinMode(PIN_CLOCK, OUTPUT);
+    GPIO_OUTPUT(DATA_NUM);
+    GPIO_OUTPUT(CLOCK_NUM);
     // Raise MCLR, then VDD.
     GPIO_SET(MCLR_NUM, MCLR_VPP);
-    delayMicroseconds(DELAY_TPPDP);
+    os_delay_us(DELAY_TPPDP);
     GPIO_SET(VDD_NUM, HIGH);
-    delayMicroseconds(DELAY_THLD0);
+    os_delay_us(DELAY_THLD0);
     // Now in program mode, starting at the first word of program memory.
-    state = STATE_PROGRAM;
-    pc = 0;
+    _state = STATE_PROGRAM;
+    _program_counter = 0;
 }
 
 
 // Exit programming mode and reset the device.
 static ICACHE_FLASH_ATTR
-void _exit_programMode() {
+void _exit_program_mode() {
     // Nothing to do if already out of programming mode.
-    if (state == STATE_IDLE)
+    if (_state == STATE_IDLE)
         return;
     // Lower MCLR, VDD, DATA, and CLOCK.
     GPIO_SET(MCLR_NUM, MCLR_RESET);
     GPIO_SET(VDD_NUM, LOW);
+    GPIO_SET(DATA_NUM, LOW);
     GPIO_SET(CLOCK_NUM, LOW);
-    GPIO_SET(PIN_CLOCK, LOW);
     // Float the DATA and CLOCK pins.
-    pinMode(CLOCK_NUM, INPUT);
-    pinMode(PIN_CLOCK, INPUT);
+    GPIO_INPUT(DATA_NUM);
+    GPIO_INPUT(CLOCK_NUM);
     // Now in the idle state with the PIC powered off.
-    state = STATE_IDLE;
-    pc = 0;
+    _state = STATE_IDLE;
+    _program_counter = 0;
 }
 
 
@@ -143,13 +169,87 @@ uint32_t _send_read_command(uint8_t cmd) {
 }
 
 
+// Set the program counter to a specific "flat" address.
+static ICACHE_FLASH_ATTR
+void _set_program_counter(unsigned long addr)
+{
+    if (addr >= dataStart && addr <= dataEnd) {
+        // Data memory.
+        addr -= dataStart;
+        if (_state != STATE_PROGRAM || addr < _program_counter) {
+            // Device is off, currently looking at configuration memory,
+            // or the address is further back.  Reset the device.
+            _exit_program_mode();
+            _enter_program_mode();
+        }
+    } else if (addr >= configStart && addr <= configEnd) {
+        // Configuration memory.
+        addr -= configStart;
+        if (_state == STATE_IDLE) {
+            // Enter programming mode and switch to config memory.
+            _enter_program_mode();
+            _send_write_command(CMD_LOAD_CONFIG, 0);
+            _state = STATE_CONFIG;
+        } else if (_state == STATE_PROGRAM) {
+            // Switch from program memory to config memory.
+            _send_write_command(CMD_LOAD_CONFIG, 0);
+            _state = STATE_CONFIG;
+            _program_counter = 0;
+        } else if (addr < _program_counter) {
+            // Need to go backwards in config memory, so reset the device.
+            _exit_program_mode();
+            _enter_program_mode();
+            _send_write_command(CMD_LOAD_CONFIG, 0);
+            _state = STATE_CONFIG;
+        }
+    } else {
+        // Program memory.
+        if (_state != STATE_PROGRAM || addr < _program_counter) {
+            // Device is off, currently looking at configuration memory,
+            // or the address is further back.  Reset the device.
+            _exit_program_mode();
+            _enter_program_mode();
+        }
+    }
+    while (_program_counter < addr) {
+        _send_simple_command(CMD_INCREMENT_ADDRESS);
+        ++_program_counter;
+    }
+}
+// Sets the PC for "erase mode", which is activated by loading the
+// data value 0x3FFF into location 0 of configuration memory.
+static ICACHE_FLASH_ATTR
+void _set_erase_program_counter()
+{
+    // Forcibly reset the device so we know what state it is in.
+    _exit_program_mode();
+    _enter_program_mode();
+    // Load 0x3FFF for the configuration.
+    _send_write_command(CMD_LOAD_CONFIG, 0x3FFF);
+    _state = STATE_CONFIG;
+}
+
+
+// Read a word from memory (program, config, or data depending upon addr).
+// The start and stop bits will be stripped from the raw value from the PIC.
+static ICACHE_FLASH_ATTR
+unsigned int _read_word(unsigned long addr)
+{
+    _set_program_counter(addr);
+    if (addr >= dataStart && addr <= dataEnd)
+        return (_send_read_command(CMD_READ_DATA_MEMORY) >> 1) & 0x00FF;
+    else
+        return (_send_read_command(CMD_READ_PROGRAM_MEMORY) >> 1) & 0x3FFF;
+}
+
+
 /*
  * Read a word from config memory using relative, non-flat, addressing.
  * Used by the "DEVICE" command to fetch information about devices whose
  * flat address ranges are presently unknown.
  */
 static ICACHE_FLASH_ATTR
-uint32_t sp_pic_io_read_config_word(uint64_t addr)
+uint32_t _read_config_word(uint64_t addr)
 {
     if (_state == STATE_IDLE) {
         // Enter programming mode and switch to config memory.
@@ -178,7 +278,7 @@ uint32_t sp_pic_io_read_config_word(uint64_t addr)
 // Initialize device properties from the "devices" list and
 // print them to the serial port.  Note: "dev" is in PROGMEM.
 ICACHE_FLASH_ATTR
-void sp_pic_init_device(const struct deviceInfo *dev)
+void _init_device(const struct deviceInfo *dev)
 {
     // Update the global device details.
     programEnd = dev->programSize - 1;
@@ -226,14 +326,14 @@ ICACHE_FLASH_ATTR
 void sp_pic_cmd_device(const char *args)
 {
     // Make sure the device is reset before we start.
-    exitProgramMode();
+    _exit_program_mode();
     // Read identifiers and configuration words from config memory.
-    unsigned int userid0 = readConfigWord(DEV_USERID0);
-    unsigned int userid1 = readConfigWord(DEV_USERID1);
-    unsigned int userid2 = readConfigWord(DEV_USERID2);
-    unsigned int userid3 = readConfigWord(DEV_USERID3);
-    unsigned int deviceId = readConfigWord(DEV_ID);
-    unsigned int configWord = readConfigWord(DEV_CONFIG_WORD);
+    unsigned int userid0 = _read_config_word(DEV_USERID0);
+    unsigned int userid1 = _read_config_word(DEV_USERID1);
+    unsigned int userid2 = _read_config_word(DEV_USERID2);
+    unsigned int userid3 = _read_config_word(DEV_USERID3);
+    unsigned int deviceId = _read_config_word(DEV_ID);
+    unsigned int configWord = _read_config_word(DEV_CONFIG_WORD);
     // If the device ID is all-zeroes or all-ones, then it could mean
     // one of the following:
     //
@@ -250,12 +350,12 @@ void sp_pic_cmd_device(const char *args)
         unsigned int word = userid0 | userid1 | userid2 | userid3 | configWord;
         unsigned int addr = 0;
         while (!word && addr < 16) {
-            word |= readWord(addr);
+            word |= _read_word(addr);
             ++addr;
         }
         if (!word) {
             os_printf("ERROR\r\n");
-            exitProgramMode();
+            _exit_program_mode();
             return;
         }
         deviceId = 0;
@@ -279,7 +379,7 @@ void sp_pic_cmd_device(const char *args)
         ++index;
     }
     if (index >= 0) {
-        initDevice(&(devices[index]));
+        _init_device(&(devices[index]));
     } else {
         // Reset the global parameters to their defaults.  A separate
         // "SETDEVICE" command will be needed to set the correct values.
@@ -299,12 +399,12 @@ void sp_pic_cmd_device(const char *args)
     os_printf("\r\n");
     os_printf(".\r\n");
     // Don't need programming mode once the details have been read.
-    exitProgramMode();
+    _exit_program_mode();
 }
 
 
 ICACHE_FLASH_ATTR
-void sp_pic_inititialize() {
+void sp_pic_initialize() {
 	PIN_FUNC_SELECT(DATA_MUX, DATA_FUNC);
 	PIN_PULLUP_EN(DATA_MUX);
 	GPIO_OUTPUT(DATA_NUM);
