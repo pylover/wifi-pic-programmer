@@ -8,7 +8,34 @@ DEFAULT_TCP_PORT = 8585
 DEFAULT_SERVICE_NAME = '_WPPS._tcp.local'
 
 
-class Programmer(SubCommand):
+class ProgrammerBaseCommand(SubCommand):
+
+    def get_wifi_module_address(self, args):
+        if not args.host.endswith('.local'):
+            return args.host, args.port
+
+        with Hosts() as h:
+            if args.force:
+                h.clear()
+            return h[args.host]
+
+    def connect(self, args):
+        host, port = self.get_wifi_module_address(args)
+        print(f'Connecting to {host}:{port}')
+        return WifiProgrammer(host, port)
+
+
+class DeviceInfo(ProgrammerBaseCommand):
+    __command__ = 'device-info'
+    __arguments__ = [
+    ]
+
+    def __call__(self, args):
+        with self.connect(args) as p:
+            p.get_device_info()
+
+
+class Programmer(ProgrammerBaseCommand):
     __command__ = 'programmer'
     __arguments__ = [
         Argument(
@@ -34,25 +61,13 @@ class Programmer(SubCommand):
             '-f', '--force',
             action='store_true',
             help='Force to do a mDNS query, and do not use hosts cache'
-        )
+        ),
+        DeviceInfo
     ]
 
     def __call__(self, args):
-        host, port = self.get_wifi_module_address(args)
-        print(f'Connecting to {host}:{port}')
-        with WifiProgrammer(host, port) as p:
+        with self.connect(args) as p:
             if args.version:
                 print(p.get_version())
-
-    def get_wifi_module_address(self, args):
-        if not args.host.endswith('.local'):
-            return args.host, args.port
-
-        with Hosts() as h:
-            if args.force:
-                h.clear()
-
-            return h[args.host]
-
 
 

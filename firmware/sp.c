@@ -22,6 +22,14 @@ SPError sp_command_programmer_version(SPPacket *req) {
 
 
 static ICACHE_FLASH_ATTR
+SPError sp_command_device_info(SPPacket *req) {
+	sp_pic_command_device(req);
+	sp_tcpserver_response(SP_OK, "OK", 2);
+	return SP_OK;
+}
+
+
+static ICACHE_FLASH_ATTR
 SPError sp_process_request(SPPacket *req) {
 
 #if SP_VERBOSE
@@ -40,6 +48,9 @@ SPError sp_process_request(SPPacket *req) {
 
 		case SP_CMD_PROGRAMMER_VERSION:
 			return sp_command_programmer_version(req);
+		
+		case SP_CMD_DEVICE:
+			return sp_command_device_info(req);
 
 		default:
 			return SP_ERR_INVALID_COMMAND;

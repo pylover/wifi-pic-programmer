@@ -5,6 +5,7 @@ import socket
 
 SP_CMD_ECHO = 1
 SP_CMD_PROGRAMMER_VERSION = 2
+SP_CMD_DEVICE = 3
 
 
 
@@ -64,4 +65,9 @@ class WifiProgrammer:
         version = Packet(SP_CMD_PROGRAMMER_VERSION)
         response = version.send(self._socket)
         return response.body.decode()
+
+    def get_device_info(self):
+        info = Packet(SP_CMD_DEVICE)
+        response = info.send(self._socket)
+        return
 

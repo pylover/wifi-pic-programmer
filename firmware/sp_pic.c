@@ -323,8 +323,7 @@ void _init_device(const struct deviceInfo *dev)
 
 // DEVICE command.
 ICACHE_FLASH_ATTR
-void sp_pic_cmd_device(const char *args)
-{
+void sp_pic_command_device(const char *args) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
     // Read identifiers and configuration words from config memory.
@@ -347,8 +346,8 @@ void sp_pic_cmd_device(const char *args)
     // If we find a non-zero word, we assume that we have a PIC but we
     // cannot detect what type it is.
     if (deviceId == 0 || deviceId == 0x3FFF) {
-        unsigned int word = userid0 | userid1 | userid2 | userid3 | configWord;
-        unsigned int addr = 0;
+        uint32_t word = userid0 | userid1 | userid2 | userid3 | configWord;
+        uint32_t addr = 0;
         while (!word && addr < 16) {
             word |= _read_word(addr);
             ++addr;

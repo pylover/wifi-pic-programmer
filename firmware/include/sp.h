@@ -14,7 +14,8 @@
 
 typedef enum {
 	SP_CMD_ECHO = 1,
-	SP_CMD_PROGRAMMER_VERSION = 2
+	SP_CMD_PROGRAMMER_VERSION = 2,
+	SP_CMD_DEVICE = 3
 } SPCommand;
 
 
