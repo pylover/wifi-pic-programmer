@@ -22,32 +22,6 @@ static uint8_t progFlashType		= FLASH4;
 static uint8_t dataFlashType		= EEPROM;
 
 
-static ICACHE_FLASH_ATTR
-void printHex1(unsigned int value) {
-    if (value >= 10)
-        os_printf("%c", (char)('A' + value - 10));
-    else
-        os_printf("%c", (char)('0' + value));
-}
-
-
-static ICACHE_FLASH_ATTR
-void printHex4(unsigned int word) {
-    printHex1((word >> 12) & 0x0F);
-    printHex1((word >> 8) & 0x0F);
-    printHex1((word >> 4) & 0x0F);
-    printHex1(word & 0x0F);
-}
-
-
-static ICACHE_FLASH_ATTR
-void printHex8(unsigned long word) {
-    unsigned int upper = (unsigned int)(word >> 16);
-    if (upper)
-        printHex4(upper);
-    printHex4((unsigned int)word);
-}
-
 // Enter high voltage programming mode.
 static ICACHE_FLASH_ATTR
 void _enter_program_mode() {
@@ -293,6 +267,7 @@ void _init_device(const struct deviceInfo *dev)
     configSave = dev->configSave;
     progFlashType = dev->progFlashType;
     dataFlashType = dev->dataFlashType;
+
     // Print the extra device information.
 	os_printf("DeviceName: %s\r\n", dev->name);
     os_printf("ProgramRange: 0000-%04X\r\n", (uint32_t)programEnd);
@@ -349,9 +324,7 @@ void sp_pic_command_device(const char *args) {
         deviceId = 0;
     }
     os_printf("OK\r\n");
-    os_printf("DeviceID: ");
-    printHex4(deviceId);
-    os_printf("\r\n");
+    os_printf("DeviceID: %02X\r\n", deviceId);
     // Find the device in the built-in list if we have details for it.
     int index = 0;
     for (;;) {
@@ -383,9 +356,7 @@ void sp_pic_command_device(const char *args) {
         progFlashType = FLASH4;
         dataFlashType = EEPROM;
     }
-    os_printf("ConfigWord: ");
-    printHex4(configWord);
-    os_printf("\r\n");
+    os_printf("ConfigWord: %02X\r\n", configWord);
     os_printf(".\r\n");
     // Don't need programming mode once the details have been read.
     _exit_program_mode();
