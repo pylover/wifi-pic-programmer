@@ -290,12 +290,12 @@ void sp_pic_command_device(const char *args) {
 	os_printf("Reading configuration...");
 
     // Read identifiers and configuration words from config memory.
-    unsigned int userid0 = _read_config_word(DEV_USERID0);
-    unsigned int userid1 = _read_config_word(DEV_USERID1);
-    unsigned int userid2 = _read_config_word(DEV_USERID2);
-    unsigned int userid3 = _read_config_word(DEV_USERID3);
-    unsigned int deviceId = _read_config_word(DEV_ID);
-    unsigned int configWord = _read_config_word(DEV_CONFIG_WORD);
+    uint32_t userid0 = _read_config_word(DEV_USERID0);
+    uint32_t userid1 = _read_config_word(DEV_USERID1);
+    uint32_t userid2 = _read_config_word(DEV_USERID2);
+    uint32_t userid3 = _read_config_word(DEV_USERID3);
+    uint32_t deviceId = _read_config_word(DEV_ID);
+    uint32_t configWord = _read_config_word(DEV_CONFIG_WORD);
 
     // If the device ID is all-zeroes or all-ones, then it could mean
     // one of the following:
