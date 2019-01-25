@@ -25,9 +25,9 @@ static uint8_t dataFlashType		= EEPROM;
 static ICACHE_FLASH_ATTR
 void printHex1(unsigned int value) {
     if (value >= 10)
-        os_printf("%s", (char)('A' + value - 10));
+        os_printf("%c", (char)('A' + value - 10));
     else
-        os_printf("%s", (char)('0' + value));
+        os_printf("%c", (char)('0' + value));
 }
 
 
@@ -87,6 +87,7 @@ void _exit_program_mode() {
     GPIO_SET(VDD_NUM, LOW);
     GPIO_SET(DATA_NUM, LOW);
     GPIO_SET(CLOCK_NUM, LOW);
+
     // Float the DATA and CLOCK pins.
     GPIO_INPUT(DATA_NUM);
     GPIO_INPUT(CLOCK_NUM);
@@ -249,8 +250,9 @@ unsigned int _read_word(unsigned long addr)
  * flat address ranges are presently unknown.
  */
 static ICACHE_FLASH_ATTR
-uint32_t _read_config_word(uint64_t addr)
-{
+uint32_t _read_config_word(uint64_t addr) {
+	os_printf("_read_config_word: state: %d\r\n", _state);
+
     if (_state == STATE_IDLE) {
         // Enter programming mode and switch to config memory.
         _enter_program_mode();
@@ -326,6 +328,9 @@ ICACHE_FLASH_ATTR
 void sp_pic_command_device(const char *args) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
+	
+	os_printf("Reading configuration\r\n");
+
     // Read identifiers and configuration words from config memory.
     unsigned int userid0 = _read_config_word(DEV_USERID0);
     unsigned int userid1 = _read_config_word(DEV_USERID1);
@@ -380,6 +385,7 @@ void sp_pic_command_device(const char *args) {
     if (index >= 0) {
         _init_device(&(devices[index]));
     } else {
+		os_printf("No device detected\r\n");
         // Reset the global parameters to their defaults.  A separate
         // "SETDEVICE" command will be needed to set the correct values.
         programEnd    = 0x07FF;

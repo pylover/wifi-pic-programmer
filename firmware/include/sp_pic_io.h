@@ -14,17 +14,13 @@
 #define CLOCK_NUM			5
 #define CLOCK_FUNC			FUNC_GPIO5
 
-#define MCLR_MUX			PERIPHS_IO_MUX_GPIO6_U
-#define MCLR_NUM			6
-#define MCLR_FUNC			FUNC_GPIO6
+#define MCLR_MUX			PERIPHS_IO_MUX_GPIO0_U
+#define MCLR_NUM			0
+#define MCLR_FUNC			FUNC_GPIO0
 
-#define VPP_MUX				PERIPHS_IO_MUX_GPIO7_U
-#define VPP_NUM				7
-#define VPP_FUNC			FUNC_GPIO7
-
-#define VDD_MUX				PERIPHS_IO_MUX_GPIO7_U
-#define VDD_NUM				7
-#define VDD_FUNC			FUNC_GPIO7
+#define VDD_MUX				PERIPHS_IO_MUX_MTMS_U
+#define VDD_NUM				14
+#define VDD_FUNC			FUNC_GPIO14
 
 
 #define LOW 0
