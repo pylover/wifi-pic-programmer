@@ -224,7 +224,6 @@ uint32_t _read_word(uint64_t addr) {
  */
 static ICACHE_FLASH_ATTR
 uint32_t _read_config_word(uint64_t addr) {
-	os_printf("_read_config_word: state: %d\r\n", _state);
 
     if (_state == STATE_IDLE) {
         // Enter programming mode and switch to config memory.
@@ -288,7 +287,7 @@ void sp_pic_command_device(const char *args) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
 	
-	os_printf("Reading configuration\r\n");
+	os_printf("Reading configuration...");
 
     // Read identifiers and configuration words from config memory.
     unsigned int userid0 = _read_config_word(DEV_USERID0);
