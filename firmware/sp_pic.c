@@ -294,32 +294,16 @@ void _init_device(const struct deviceInfo *dev)
     progFlashType = dev->progFlashType;
     dataFlashType = dev->dataFlashType;
     // Print the extra device information.
-	os_printf("DeviceName: %s", dev->name);
-    os_printf("\r\n");
-    os_printf("ProgramRange: 0000-");
-    printHex8(programEnd);
-    os_printf("\r\n");
-    os_printf("ConfigRange: ");
-    printHex8(configStart);
-    os_printf("-");
-    printHex8(configEnd);
-    os_printf("\r\n");
-    if (configSave != 0) {
-        os_printf("ConfigSave: ");
-        printHex4(configSave);
-        os_printf("\r\n");
-    }
-    os_printf("DataRange: ");
-    printHex8(dataStart);
-    os_printf("-");
-    printHex8(dataEnd);
-    os_printf("\r\n");
+	os_printf("DeviceName: %s\r\n", dev->name);
+    os_printf("ProgramRange: 0000-%04X\r\n", (uint32_t)programEnd);
+    os_printf("ConfigRange: %04X-%04X\r\n", (uint32_t)configStart, 
+			(uint32_t)configEnd);
+    os_printf("ConfigSave: %02X\r\n", (uint16_t)configSave);
+    os_printf("DataRange: %04X-%04X\r\n", (uint32_t)dataStart, 
+			(uint32_t)dataEnd);
     if (reservedStart <= reservedEnd) {
-        os_printf("ReservedRange: ");
-        printHex8(reservedStart);
-		os_printf("-");
-        printHex8(reservedEnd);
-        os_printf("\r\n");
+        os_printf("ReservedRange: %04X-%04X\r\n", (uint32_t)reservedStart,
+				(uint32_t)reservedEnd);
     }
 }
 
