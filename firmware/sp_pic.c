@@ -146,8 +146,7 @@ uint32_t _send_read_command(uint8_t cmd) {
 
 // Set the program counter to a specific "flat" address.
 static ICACHE_FLASH_ATTR
-void _set_program_counter(unsigned long addr)
-{
+void _set_program_counter(uint64_t addr) {
     if (addr >= dataStart && addr <= dataEnd) {
         // Data memory.
         addr -= dataStart;
@@ -191,11 +190,12 @@ void _set_program_counter(unsigned long addr)
         ++_program_counter;
     }
 }
+
+
 // Sets the PC for "erase mode", which is activated by loading the
 // data value 0x3FFF into location 0 of configuration memory.
 static ICACHE_FLASH_ATTR
-void _set_erase_program_counter()
-{
+void _set_erase_program_counter() {
     // Forcibly reset the device so we know what state it is in.
     _exit_program_mode();
     _enter_program_mode();
@@ -208,8 +208,7 @@ void _set_erase_program_counter()
 // Read a word from memory (program, config, or data depending upon addr).
 // The start and stop bits will be stripped from the raw value from the PIC.
 static ICACHE_FLASH_ATTR
-unsigned int _read_word(unsigned long addr)
-{
+uint32_t _read_word(uint64_t addr) {
     _set_program_counter(addr);
     if (addr >= dataStart && addr <= dataEnd)
         return (_send_read_command(CMD_READ_DATA_MEMORY) >> 1) & 0x00FF;
@@ -251,11 +250,11 @@ uint32_t _read_config_word(uint64_t addr) {
     return (_send_read_command(CMD_READ_PROGRAM_MEMORY) >> 1) & 0x3FFF;
 }
 
+
 // Initialize device properties from the "devices" list and
 // print them to the serial port.  Note: "dev" is in PROGMEM.
 ICACHE_FLASH_ATTR
-void _init_device(const struct deviceInfo *dev)
-{
+void _init_device(const struct deviceInfo *dev) {
     // Update the global device details.
     programEnd = dev->programSize - 1;
     configStart = dev->configStart;
@@ -282,6 +281,7 @@ void _init_device(const struct deviceInfo *dev)
     }
 }
 
+
 // DEVICE command.
 ICACHE_FLASH_ATTR
 void sp_pic_command_device(const char *args) {
@@ -297,6 +297,7 @@ void sp_pic_command_device(const char *args) {
     unsigned int userid3 = _read_config_word(DEV_USERID3);
     unsigned int deviceId = _read_config_word(DEV_ID);
     unsigned int configWord = _read_config_word(DEV_CONFIG_WORD);
+
     // If the device ID is all-zeroes or all-ones, then it could mean
     // one of the following:
     //
@@ -375,5 +376,4 @@ ICACHE_FLASH_ATTR
 void sp_pic_shutdown() {
 	// Do nothing here for now
 }
-
 
