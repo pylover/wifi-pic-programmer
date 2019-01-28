@@ -1,5 +1,5 @@
-#ifndef _SP_PIC_DEVICES_H__
-#define _SP_PIC_DEVICES_H__
+#ifndef _PIC_DEVICES_H__
+#define _PIC_DEVICES_H__
 
 
 // Offsets of interesting config locations that contain device information.

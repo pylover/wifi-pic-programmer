@@ -23,7 +23,7 @@ SPError sp_command_programmer_version(SPPacket *req) {
 
 static ICACHE_FLASH_ATTR
 SPError sp_command_device_info(SPPacket *req) {
-	sp_pic_command_device(req);
+	pic_command_device(req);
 	sp_tcpserver_response(SP_OK, "OK", 2);
 	return SP_OK;
 }
@@ -65,13 +65,13 @@ void ICACHE_FLASH_ATTR
 sp_initialize() {
 	sp_mdns_setup();
 	sp_tcpserver_initialize(sp_process_request);
-	sp_pic_initialize();
+	pic_initialize();
 }
 
 
 void ICACHE_FLASH_ATTR
 sp_shutdown() {
-	sp_pic_shutdown();
+	pic_shutdown();
 	espconn_mdns_close();
 	sp_tcpserver_shutdown();
 }

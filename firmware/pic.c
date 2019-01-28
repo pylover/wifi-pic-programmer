@@ -1,5 +1,5 @@
-#include "sp_pic_io.h"
-#include "sp_pic_devices.h"
+#include "pic_io.h"
+#include "pic_devices.h"
 
 #include <c_types.h>
 
@@ -283,7 +283,7 @@ void _init_device(const struct deviceInfo *dev) {
 
 // DEVICE command.
 ICACHE_FLASH_ATTR
-void sp_pic_command_device(const char *args) {
+void pic_command_device(const char *args) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
 	
@@ -364,7 +364,7 @@ void sp_pic_command_device(const char *args) {
 
 
 ICACHE_FLASH_ATTR
-void sp_pic_initialize() {
+void pic_initialize() {
 	PIN_FUNC_SELECT(DATA_MUX, DATA_FUNC);
 	PIN_PULLUP_EN(DATA_MUX);
 	GPIO_OUTPUT(DATA_NUM);
@@ -372,7 +372,7 @@ void sp_pic_initialize() {
 
 
 ICACHE_FLASH_ATTR
-void sp_pic_shutdown() {
+void pic_shutdown() {
 	// Do nothing here for now
 }
 

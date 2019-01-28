@@ -1,5 +1,5 @@
-#ifndef _SP_PIC_IO_H__
-#define _SP_PIC_IO_H__
+#ifndef _PIC_IO_H__
+#define _PIC_IO_H__
 
 #include <osapi.h>
 #include <eagle_soc.h>
