@@ -23,7 +23,7 @@ SPError sp_command_programmer_version(SPPacket *req) {
 
 static ICACHE_FLASH_ATTR
 SPError sp_command_device_info(SPPacket *req) {
-	sp_pic_command_device(req);
+	sp_pic_command_detect(req);
 	sp_tcpserver_response(SP_OK, "OK", 2);
 	return SP_OK;
 }
