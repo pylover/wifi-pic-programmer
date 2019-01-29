@@ -1,5 +1,6 @@
 #include "pic_io.h"
 #include "pic_devices.h"
+#include "sp.h"
 
 #include <c_types.h>
 
@@ -283,7 +284,7 @@ void _init_device(const struct deviceInfo *dev) {
 
 // DEVICE command.
 ICACHE_FLASH_ATTR
-void pic_command_device(const char *args) {
+SPError pic_command_detect_device(const char *args, char *device_name) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
 	
@@ -327,6 +328,19 @@ void pic_command_device(const char *args) {
     os_printf("DeviceID: %02X\r\n", deviceId);
     // Find the device in the built-in list if we have details for it.
     int index = 0;
+
+//    for (;;) {
+//        const char *name = (const char *)(devices[index].name);
+//        if (!name) {
+//            index = -1;
+//            break;
+//        }
+//		int id = devices[index].deviceId; 
+//        if (id == (deviceId & 0xFFE0))
+//			os_memcpy(info, &(devices[index]), sizeof(struct deviceInfo));
+//            break;
+//        ++index;
+//    }
     for (;;) {
         const char *name = (const char *)
             (devices[index].name);
@@ -335,13 +349,16 @@ void pic_command_device(const char *args) {
             break;
         }
         int id = devices[index].deviceId;
-        if (id == (deviceId & 0xFFE0))
+        if (id == (deviceId & 0xFFE0)) {
+			os_strcpy(device_name, name);
             break;
+		}
         ++index;
-    }
+    }	
     if (index >= 0) {
         _init_device(&(devices[index]));
-    } else {
+    } 
+	else {
 		os_printf("No device detected\r\n");
         // Reset the global parameters to their defaults.  A separate
         // "SETDEVICE" command will be needed to set the correct values.
@@ -360,6 +377,10 @@ void pic_command_device(const char *args) {
     os_printf(".\r\n");
     // Don't need programming mode once the details have been read.
     _exit_program_mode();
+    if (index >= 0) {
+		return SP_OK;
+	}
+	return SP_ERR_DEVICE_NOT_DETECTED;
 }
 
 

@@ -3,6 +3,7 @@
 #include "sp.h"
 #include "sp_mdns.h"
 #include "sp_tcpserver.h"
+#include "pic_devices.h"
 
 #include <osapi.h>
 
@@ -22,9 +23,15 @@ SPError sp_command_programmer_version(SPPacket *req) {
 
 
 static ICACHE_FLASH_ATTR
-SPError sp_command_device_info(SPPacket *req) {
-	pic_command_device(req);
-	sp_tcpserver_response(SP_OK, "OK", 2);
+SPError sp_command_detect(SPPacket *req) {
+	char name[12];
+	SPError err = pic_command_detect_device(req, &name);
+	if (err) {
+		sp_tcpserver_response(err, NULL, 0);
+		return;
+	}
+	sp_tcpserver_response(SP_OK, name, os_strlen(name));
+	//sp_tcpserver_response(SP_OK, NULL, 0);
 	return SP_OK;
 }
 
@@ -50,7 +57,7 @@ SPError sp_process_request(SPPacket *req) {
 			return sp_command_programmer_version(req);
 		
 		case SP_CMD_DEVICE:
-			return sp_command_device_info(req);
+			return sp_command_detect(req);
 
 		default:
 			return SP_ERR_INVALID_COMMAND;

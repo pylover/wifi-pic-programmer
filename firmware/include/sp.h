@@ -32,9 +32,10 @@ typedef struct {
 
 
 typedef enum {
-	SP_OK = 1,
+	SP_OK = 0,
 	SP_ERR_INVALID_COMMAND,
 	SP_ERR_REQ_LEN,
+	SP_ERR_DEVICE_NOT_DETECTED,
 } SPError;
 
 #endif

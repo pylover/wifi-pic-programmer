@@ -1,4 +1,4 @@
-from easycli import SubCommand, Argument
+from easycli import SubCommand, Argument, Root
 
 from .protocol import WifiProgrammer
 from .hosts import Hosts
@@ -25,18 +25,18 @@ class ProgrammerBaseCommand(SubCommand):
         return WifiProgrammer(host, port)
 
 
-class DeviceInfo(ProgrammerBaseCommand):
-    __command__ = 'device-info'
-    __arguments__ = [
-    ]
+class Detect(ProgrammerBaseCommand):
+    __command__ = 'detect'
 
     def __call__(self, args):
         with self.connect(args) as p:
-            p.get_device_info()
+            print(f'Programmer detected: {p.version}')
+            print(p.get_device_info())
 
 
-class Programmer(ProgrammerBaseCommand):
-    __command__ = 'programmer'
+class PicFota(Root):
+    __help__ = 'WIFI PIC Programmer'
+    __completion__ = True
     __arguments__ = [
         Argument(
             '-V', '--version',
@@ -62,12 +62,15 @@ class Programmer(ProgrammerBaseCommand):
             action='store_true',
             help='Force to do a mDNS query, and do not use hosts cache'
         ),
-        DeviceInfo
+
+        Detect,
     ]
 
     def __call__(self, args):
-        with self.connect(args) as p:
-            if args.version:
-                print(p.get_version())
+        if args.version:
+            import picfota
+            print(picfota.__version__)
+            return
 
+        return super().__call__(args)
 

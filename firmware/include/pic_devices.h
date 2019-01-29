@@ -14,8 +14,7 @@
 // List of devices that are currently supported and their properties.
 // Note: most of these are based on published information and have not
 // been tested by the author.  Patches welcome to improve the list.
-struct deviceInfo
-{
+struct deviceInfo {
     const char *name;      // User-readable name of the device.
     int16_t deviceId;      // Device ID for the PIC (-1 if no id).
     uint32_t programSize;  // Size of program memory (words).

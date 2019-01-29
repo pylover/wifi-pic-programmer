@@ -33,7 +33,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'picfota = picfota.root:PicFota'
+            'picfota = picfota.commands:PicFota'
         ]
     },
     license='MIT',

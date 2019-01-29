@@ -2,11 +2,18 @@ import time
 import struct
 import socket
 
+from .exceptions import ProgrammerNotDetectedError
+
 
 SP_CMD_ECHO = 1
 SP_CMD_PROGRAMMER_VERSION = 2
 SP_CMD_DEVICE = 3
 
+# Protocol Errors
+SP_OK = 0
+SP_ERR_INVALID_COMMAND = 1
+SP_ERR_REQ_LEN = 2
+SP_ERR_DEVICE_NOT_DETECTED = 3
 
 
 class Packet:
@@ -46,8 +53,24 @@ class Packet:
 
         return cls(status, body)
 
+    @property
+    def ok(self):
+        return self.status == SP_OK
+
+    def __str__(self):
+        text = self.body.decode()
+
+        if self.status != SP_OK:
+            return f'Programmer Error: {text}'
+
+        return text
+
+    def __repr__(self):
+        return f'<Packet status={self.status}>{str(self)}</Packet>'
+
 
 class WifiProgrammer:
+    version = None
     def __init__(self, host, port):
         self.host = host
         self.port = port
@@ -56,18 +79,19 @@ class WifiProgrammer:
     def __enter__(self):
         self._socket.__enter__()
         self._socket.connect((self.host, self.port))
+        version_request = Packet(SP_CMD_PROGRAMMER_VERSION)
+        response = version_request.send(self._socket)
+        if response.status != 0:
+            raise ProgrammerNotDetectedError(response)
+
+        self.version = str(response)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self._socket.__exit__()
-
-    def get_version(self):
-        version = Packet(SP_CMD_PROGRAMMER_VERSION)
-        response = version.send(self._socket)
-        return response.body.decode()
+        return self._socket.__exit__()
 
     def get_device_info(self):
         info = Packet(SP_CMD_DEVICE)
         response = info.send(self._socket)
-        return
+        return response
 
