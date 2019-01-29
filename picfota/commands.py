@@ -31,7 +31,7 @@ class Detect(ProgrammerBaseCommand):
     def __call__(self, args):
         with self.connect(args) as p:
             print(f'Programmer detected: {p.version}')
-            print(p.get_device_info())
+            print(f'Device: {p.get_device_info()}')
 
 
 class PicFota(Root):
