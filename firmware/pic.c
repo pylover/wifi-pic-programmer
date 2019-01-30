@@ -3,6 +3,7 @@
 #include "sp.h"
 
 #include <c_types.h>
+#include <mem.h>
 
 
 static int _state;
@@ -284,7 +285,7 @@ void _init_device(const struct deviceInfo *dev) {
 
 // DEVICE command.
 ICACHE_FLASH_ATTR
-SPError pic_command_detect_device(const char *args, char *device_name) {
+SPError pic_command_detect_device(const SPPacket *req) {
     // Make sure the device is reset before we start.
     _exit_program_mode();
 	
@@ -329,18 +330,6 @@ SPError pic_command_detect_device(const char *args, char *device_name) {
     // Find the device in the built-in list if we have details for it.
     int index = 0;
 
-//    for (;;) {
-//        const char *name = (const char *)(devices[index].name);
-//        if (!name) {
-//            index = -1;
-//            break;
-//        }
-//		int id = devices[index].deviceId; 
-//        if (id == (deviceId & 0xFFE0))
-//			os_memcpy(info, &(devices[index]), sizeof(struct deviceInfo));
-//            break;
-//        ++index;
-//    }
     for (;;) {
         const char *name = (const char *)
             (devices[index].name);
@@ -350,7 +339,7 @@ SPError pic_command_detect_device(const char *args, char *device_name) {
         }
         int id = devices[index].deviceId;
         if (id == (deviceId & 0xFFE0)) {
-			os_strcpy(device_name, name);
+			sp_tcpserver_response(SP_OK, name, os_strlen(name));
             break;
 		}
         ++index;
@@ -377,12 +366,267 @@ SPError pic_command_detect_device(const char *args, char *device_name) {
     os_printf(".\r\n");
     // Don't need programming mode once the details have been read.
     _exit_program_mode();
-    if (index >= 0) {
-		return SP_OK;
+
+    if (index < 0) {
+		sp_tcpserver_response(SP_ERR_DEVICE_NOT_DETECTED, NULL, 0);
+		return SP_ERR_DEVICE_NOT_DETECTED;
 	}
-	return SP_ERR_DEVICE_NOT_DETECTED;
+	return SP_OK;
 }
 
+
+ICACHE_FLASH_ATTR
+SPError pic_command_read(const SPPacket *req) {
+    uint32_t start = bigendian_deserialize_uint32(req->body);
+    uint32_t end = bigendian_deserialize_uint32(req->body + 8);
+	uint32_t length = end - start;
+    int count = 0;
+    bool activity = true;
+	char *buffer = (char*)os_zalloc(1024);
+    while (start <= end) {
+        uint32_t word = _read_word(start);
+		bigendian_serialize_uint32(buffer + count * 4, word);
+        ++start;
+        ++count;
+        if (count == 256) {
+			sp_tcpserver_response(SP_STATUS_READ_MORE, buffer, 1024);		
+		}
+		if((count % 32) == 0) {
+            // Toggle the activity LED to make it blink during long reads.
+            activity ^= true;
+			GPIO_SET(LED_NUM, activity);
+        }
+    }
+	sp_tcpserver_response(SP_STATUS_READ_DONE, NULL, 0);		
+	return SP_OK;
+}
+
+/*
+// READBIN command.
+void cmdReadBinary(const char *args)
+{
+    unsigned long start;
+    unsigned long end;
+    if (!parseCheckedRange(args, &start, &end)) {
+        Serial.println("ERROR");
+        return;
+    }
+    Serial.println("OK");
+    int count = 0;
+    bool activity = true;
+    size_t offset = 0;
+    while (start <= end) {
+        unsigned int word = readWord(start);
+        buffer[++offset] = (char)word;
+        buffer[++offset] = (char)(word >> 8);
+        if (offset >= BINARY_TRANSFER_MAX) {
+            // Buffer is full - flush it to the host.
+            buffer[0] = (char)offset;
+            Serial.write((const uint8_t *)buffer, offset + 1);
+            offset = 0;
+        }
+        ++start;
+        ++count;
+        if ((count % 64) == 0) {
+            // Toggle the activity LED to make it blink during long reads.
+            activity = !activity;
+            if (activity)
+                digitalWrite(PIN_ACTIVITY, HIGH);
+            else
+                digitalWrite(PIN_ACTIVITY, LOW);
+        }
+    }
+    if (offset > 0) {
+        // Flush the final packet before the terminator.
+        buffer[0] = (char)offset;
+        Serial.write((const uint8_t *)buffer, offset + 1);
+    }
+    // Write the terminator (a zero-length packet).
+    Serial.write((uint8_t)0x00);
+}
+const char s_force[] PROGMEM = "FORCE";
+// WRITE command.
+void cmdWrite(const char *args)
+{
+    unsigned long addr;
+    unsigned long limit;
+    unsigned long value;
+    int size;
+    // Was the "FORCE" option given?
+    int len = 0;
+    while (args[len] != '\0' && args[len] != ' ' && args[len] != '\t')
+        ++len;
+    bool force = matchString(s_force, args, len);
+    if (force) {
+        args += len;
+        while (*args == ' ' || *args == '\t')
+            ++args;
+    }
+    size = parseHex(args, &addr);
+    if (!size) {
+        Serial.println("ERROR");
+        return;
+    }
+    args += size;
+    if (addr <= programEnd) {
+        limit = programEnd;
+    } else if (addr >= configStart && addr <= configEnd) {
+        limit = configEnd;
+    } else if (addr >= dataStart && addr <= dataEnd) {
+        limit = dataEnd;
+    } else {
+        // Address is not within one of the valid ranges.
+        Serial.println("ERROR");
+        return;
+    }
+    int count = 0;
+    for (;;) {
+        while (*args == ' ' || *args == '\t')
+            ++args;
+        if (*args == '\0')
+            break;
+        if (*args == '-') {
+            Serial.println("ERROR");
+            return;
+        }
+        size = parseHex(args, &value);
+        if (!size) {
+            Serial.println("ERROR");
+            return;
+        }
+        args += size;
+        if (addr > limit) {
+            // We've reached the limit of this memory area, so fail.
+            Serial.println("ERROR");
+            return;
+        }
+        if (!force) {
+            if (!writeWord(addr, (unsigned int)value)) {
+                // The actual write to the device failed.
+                Serial.println("ERROR");
+                return;
+            }
+        } else {
+            if (!writeWordForced(addr, (unsigned int)value)) {
+                // The actual write to the device failed.
+                Serial.println("ERROR");
+                return;
+            }
+        }
+        ++addr;
+        ++count;
+    }
+    if (!count) {
+        // Missing word argument.
+        Serial.println("ERROR");
+    } else {
+        Serial.println("OK");
+    }
+}
+// Blocking serial read for use by WRITEBIN.
+int readBlocking()
+{
+    while (!Serial.available())
+        ;   // Do nothing.
+    return Serial.read();
+}
+// WRITEBIN command.
+void cmdWriteBinary(const char *args)
+{
+    unsigned long addr;
+    unsigned long limit;
+    int size;
+    // Was the "FORCE" option given?
+    int len = 0;
+    while (args[len] != '\0' && args[len] != ' ' && args[len] != '\t')
+        ++len;
+    bool force = matchString(s_force, args, len);
+    if (force) {
+        args += len;
+        while (*args == ' ' || *args == '\t')
+            ++args;
+    }
+    size = parseHex(args, &addr);
+    if (!size) {
+        Serial.println("ERROR");
+        return;
+    }
+    args += size;
+    if (addr <= programEnd) {
+        limit = programEnd;
+    } else if (addr >= configStart && addr <= configEnd) {
+        limit = configEnd;
+    } else if (addr >= dataStart && addr <= dataEnd) {
+        limit = dataEnd;
+    } else {
+        // Address is not within one of the valid ranges.
+        Serial.println("ERROR");
+        return;
+    }
+    Serial.println("OK");
+    int count = 0;
+    bool activity = true;
+    for (;;) {
+        // Read in the next binary packet.
+        int len = readBlocking();
+        while (len == 0x0A && count == 0) {
+            // Skip 0x0A bytes before the first packet as they are
+            // probably part of a CRLF pair rather than a packet length.
+            len = readBlocking();
+        }
+        // Stop if we have a zero packet length - end of upload.
+        if (!len)
+            break;
+        // Read the contents of the packet from the serial input stream.
+        int offset = 0;
+        while (offset < len) {
+            if (offset < BINARY_TRANSFER_MAX) {
+                buffer[offset++] = (char)readBlocking();
+            } else {
+                readBlocking();     // Packet is too big - discard extra bytes.
+                ++offset;
+            }
+        }
+        // Write the words to memory.
+        for (int posn = 0; posn < (len - 1); posn += 2) {
+            if (addr > limit) {
+                // We've reached the limit of this memory area, so fail.
+                Serial.println("ERROR");
+                return;
+            }
+            unsigned int value =
+                (((unsigned int)buffer[posn]) & 0xFF) |
+                ((((unsigned int)buffer[posn + 1]) & 0xFF) << 8);
+            if (!force) {
+                if (!writeWord(addr, (unsigned int)value)) {
+                    // The actual write to the device failed.
+                    Serial.println("ERROR");
+                    return;
+                }
+            } else {
+                if (!writeWordForced(addr, (unsigned int)value)) {
+                    // The actual write to the device failed.
+                    Serial.println("ERROR");
+                    return;
+                }
+            }
+            ++addr;
+            ++count;
+            if ((count % 24) == 0) {
+                // Toggle the activity LED to make it blink during long writes.
+                activity = !activity;
+                if (activity)
+                    digitalWrite(PIN_ACTIVITY, HIGH);
+                else
+                    digitalWrite(PIN_ACTIVITY, LOW);
+            }
+        }
+        // All words in this packet have been written successfully.
+        Serial.println("OK");
+    }
+    Serial.println("OK");
+} 
+ */
 
 ICACHE_FLASH_ATTR
 void pic_initialize() {

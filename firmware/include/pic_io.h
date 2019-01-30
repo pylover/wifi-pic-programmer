@@ -23,6 +23,12 @@
 #define VDD_FUNC			FUNC_GPIO14
 
 
+#define LED_MUX				PERIPHS_IO_MUX_MTCK_U
+#define LED_NUM				13
+#define LED_FUNC			FUNC_GPIO13
+
+
+
 #define LOW 0
 #define HIGH 1
 #define GPIO_SET(n, v) GPIO_OUTPUT_SET(GPIO_ID_PIN(n), v)

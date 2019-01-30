@@ -23,20 +23,6 @@ SPError sp_command_programmer_version(SPPacket *req) {
 
 
 static ICACHE_FLASH_ATTR
-SPError sp_command_detect(SPPacket *req) {
-	char name[12];
-	SPError err = pic_command_detect_device(req, &name);
-	if (err) {
-		sp_tcpserver_response(err, NULL, 0);
-		return;
-	}
-	sp_tcpserver_response(SP_OK, name, os_strlen(name));
-	//sp_tcpserver_response(SP_OK, NULL, 0);
-	return SP_OK;
-}
-
-
-static ICACHE_FLASH_ATTR
 SPError sp_process_request(SPPacket *req) {
 
 #if SP_VERBOSE
@@ -56,8 +42,11 @@ SPError sp_process_request(SPPacket *req) {
 		case SP_CMD_PROGRAMMER_VERSION:
 			return sp_command_programmer_version(req);
 		
-		case SP_CMD_DEVICE:
-			return sp_command_detect(req);
+		case SP_CMD_DETECT:
+			return pic_command_detect_device(req);
+
+		case SP_CMD_READ:
+			return pic_command_read(req);
 
 		default:
 			return SP_ERR_INVALID_COMMAND;

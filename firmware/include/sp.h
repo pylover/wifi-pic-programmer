@@ -16,25 +16,41 @@
 typedef enum {
 	SP_CMD_ECHO = 1,
 	SP_CMD_PROGRAMMER_VERSION,
+
 	// Detect Device
-	SP_CMD_DEVICE,
+	SP_CMD_DETECT,
+
 	// Reads program and data words from device memory (text)
 	SP_CMD_READ, 
+
 	// Reads program and data words from device memory (binary)
 	SP_CMD_READBIN, 
+
 	// Writes program and data words to device memory (text)
 	SP_CMD_WRITE, 
+
 	// Writes program and data words to device memory (binary)
 	SP_CMD_WRITEBIN, 
+
 	// Erases the contents of program, configuration, and data memory
 	SP_CMD_ERASE, 
+
 	// Returns a list of all supported device type
 	SP_CMD_DEVICES, 
+
 	// Sets a specific device type manually
 	SP_CMD_SETDEVICE, 
+
 	// Powers off the device in the programming socke
 	SP_CMD_PWROFF
 } SPCommand;
+
+
+typedef enum {
+	SP_STATUS_OK,
+	SP_STATUS_READ_MORE,
+	SP_STATUS_READ_DONE,
+} SPStatus;
 
 
 typedef struct {
