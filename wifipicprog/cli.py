@@ -1,3 +1,5 @@
+import sys
+
 from easycli import SubCommand, Argument, Root
 
 from .protocol import WifiProgrammer
@@ -34,7 +36,7 @@ class Detect(ProgrammerBaseCommand):
             print(f'Device: {p.get_device_info()}')
 
 
-class PicFota(Root):
+class WifiPicProgrammer(Root):
     __help__ = 'WIFI PIC Programmer'
     __completion__ = True
     __arguments__ = [
@@ -68,9 +70,13 @@ class PicFota(Root):
 
     def __call__(self, args):
         if args.version:
-            import picfota
-            print(picfota.__version__)
+            import wifipicprog
+            print(wifipicprog.__version__)
             return
 
         return super().__call__(args)
+
+
+def main(argv=None):
+    return WifiPicProgrammer().main(argv)
 
