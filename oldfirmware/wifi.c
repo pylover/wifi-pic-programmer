@@ -1,6 +1,5 @@
 #include "wifi.h"
 #include "user_config.h"
-#include "params.h"
 
 #include <user_interface.h>
 #include <osapi.h>
@@ -11,24 +10,29 @@
 #include <os_type.h>
 
 
-static ETSTimer WiFiLinker;
+static ETSTimer wifi_timer;
 static uint8_t wifiStatus = STATION_IDLE;
 static uint8_t lastWifiStatus = STATION_IDLE;
-WifiCallback wifiCb = NULL;
+WifiCallback wifi_cb = NULL;
+TickCallback tick_cb = NULL;
+static uint32_t ticks = 0;
 
 
-static void ICACHE_FLASH_ATTR wifi_check_ip(void *arg) {
+static void ICACHE_FLASH_ATTR 
+wifi_check_ip(void *arg) {
 	struct ip_info ipConfig;
 
-	os_timer_disarm(&WiFiLinker);
+	os_timer_disarm(&wifi_timer);
 	wifi_get_ip_info(STATION_IF, &ipConfig);
 	wifiStatus = wifi_station_get_connect_status();
 	if (wifiStatus == STATION_GOT_IP && ipConfig.ip.addr != 0) {
-		os_timer_setfn(&WiFiLinker, (os_timer_func_t *)wifi_check_ip, NULL);
-		os_timer_arm(&WiFiLinker, 3000, 0);
+		if (tick_cb) 
+			tick_cb(ticks++);
+
+		os_timer_setfn(&wifi_timer, (os_timer_func_t *)wifi_check_ip, NULL);
+		os_timer_arm(&wifi_timer, 2000, 0);
 	}
-	else
-	{
+	else {
 		if(wifi_station_get_connect_status() == STATION_WRONG_PASSWORD) {
 			os_printf("STATION_WRONG_PASSWORD\r\n");
 			wifi_station_connect();
@@ -41,25 +45,26 @@ static void ICACHE_FLASH_ATTR wifi_check_ip(void *arg) {
 			os_printf("STATION_CONNECT_FAIL\r\n");
 			wifi_station_connect();
 		}
-		//else {
-		//	os_printf("STATION_IDLE\r\n");
-		//}
+		else {
+#if WIFI_VERBOSE
+			os_printf("STATION_IDLE\r\n");
+#endif
+		}
 
-		os_timer_setfn(&WiFiLinker, (os_timer_func_t *)wifi_check_ip, NULL);
-		os_timer_arm(&WiFiLinker, 500, 0);
+		os_timer_setfn(&wifi_timer, (os_timer_func_t *)wifi_check_ip, NULL);
+		os_timer_arm(&wifi_timer, 1000, 0);
 	}
-	
+
 	if(wifiStatus != lastWifiStatus){
 		lastWifiStatus = wifiStatus;
-		if(wifiCb) {
-			wifiCb(wifiStatus);
-		}
+		if(wifi_cb)
+			wifi_cb(wifiStatus);
 	}
 }
 
 
 static void ICACHE_FLASH_ATTR 
-wifi_init_softap(const char *ssid, const char *psk) {
+wifi_init_softap(const char *device_name) {
 	uint8_t mac[6];
 
 	/***add by tzx for saving ip_info to avoid dhcp_client start****/
@@ -97,19 +102,12 @@ wifi_init_softap(const char *ssid, const char *psk) {
 
 	// Updating ssid and password
 	os_sprintf(config->ssid, "%s_%02x%02x%02x%02x%02x%02x", 
-			ssid,
-			MAC2STR(mac)
-		);
+			device_name,
+			MAC2STR(mac));
 	os_printf("SSID: %s\r\n", config->ssid);
     config->ssid_len = 0; 
-	if (os_strlen(psk)) {
-		os_sprintf(config->password, psk);
-    	config->authmode = AUTH_WPA_WPA2_PSK;
-	}
-	else {
-    	config->authmode = AUTH_OPEN;
-	}
-
+    os_sprintf(config->password, WIFI_SOFTAP_PSK);
+    config->authmode = AUTH_WPA_WPA2_PSK;
     config->max_connection = 4;
 	config->channel = 5;	
 	config->beacon_interval = 120;
@@ -146,34 +144,24 @@ wifi_init_softap(const char *ssid, const char *psk) {
 }
 
 
-void ICACHE_FLASH_ATTR wifi_start(uint8_t opmode, Params *params, 
-		WifiCallback cb) {
+void ICACHE_FLASH_ATTR 
+wifi_initialize(const char *device_name, WifiCallback cb, TickCallback tcb) {
 	struct station_config stationConf;
+	wifi_init_softap(device_name);
+	wifi_set_opmode_current(STATIONAP_MODE);
+	wifi_set_sleep_type(NONE_SLEEP_T);
+	wifi_cb = cb;
+	tick_cb = tcb;
 
-	os_printf("WIFI_INIT\r\n");
-	if (opmode == STATIONAP_MODE) {
-		wifi_init_softap(params->device_name, params->ap_psk);
-	}
-	wifi_set_opmode_current(opmode);
-	//wifi_set_broadcast_if(STATIONAP_MODE);
-	//wifi_set_sleep_type(NONE_SLEEP_T);
-	//wifi_set_sleep_type(MODEM_SLEEP_T);
-	//wifi_set_sleep_type(LIGHT_SLEEP_T);
-	//wifi_station_set_auto_connect(FALSE);
-	wifiCb = cb;
+	//os_memset(&stationConf, 0, sizeof(struct station_config));
+	//os_sprintf(stationConf.ssid, "%s", ssid);
+	//os_sprintf(stationConf.password, "%s", pass);
+	//wifi_station_set_config_current(&stationConf);
 
-	os_memset(&stationConf, 0, sizeof(struct station_config));
-
-	os_sprintf(stationConf.ssid, "%s", params->station_ssid);
-	os_sprintf(stationConf.password, "%s", params->station_psk);
-
-	wifi_station_set_config_current(&stationConf);
-
-	os_timer_disarm(&WiFiLinker);
-	os_timer_setfn(&WiFiLinker, (os_timer_func_t *)wifi_check_ip, NULL);
-	os_timer_arm(&WiFiLinker, 1000, 0);
-
-	wifi_station_set_auto_connect(TRUE);
+	os_timer_disarm(&wifi_timer);
+	os_timer_setfn(&wifi_timer, (os_timer_func_t *)wifi_check_ip, NULL);
+	os_timer_arm(&wifi_timer, 1000, 0);
+	wifi_station_set_auto_connect(true);
 	wifi_station_connect();
 }
 

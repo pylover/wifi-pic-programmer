@@ -1,0 +1,3 @@
+[submodule "firmware/fota"]
+	path = firmware/fota
+	url = git@github.com:easyqiot/fota.git

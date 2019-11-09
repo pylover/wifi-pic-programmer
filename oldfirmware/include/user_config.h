@@ -2,7 +2,8 @@
 #define __USER_CONFIG_H__
 
 #define USE_OPTIMIZE_PRINTF
-#define WIFI_ENABLE_SOFTAP  true
+
+#define DEVICE_NAME	"WPP"
 
 #endif
 
