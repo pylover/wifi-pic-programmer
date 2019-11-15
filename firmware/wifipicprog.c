@@ -6,7 +6,6 @@
 #include "params.h" 
 #include "fotabtn.h"
 
-
 // SDK
 #include <ets_sys.h>
 #include <osapi.h>
@@ -18,16 +17,19 @@
 #include <ip_addr.h> 
 #include <espconn.h>
 
-
+static ETSTimer tt;
 static Params params;
 
-void wifi_connect_cb(uint8_t status) {
+static void ttcb(void *arg) {
 	int i = 0;
+	os_printf("Detecting PIC chip: %d\r\n", ++i);
+}
+
+
+void wifi_connect_cb(uint8_t status) {
     if(status == STATION_GOT_IP) {
 		os_printf("Wifi Connected, Hello\r\n");
-		os_printf("Hello World: %d\r\n", ++i);
-		os_printf("Hello World: %d\r\n", ++i);
-		os_printf("Hello World: %d\r\n", ++i);
+
     } else {
 		os_printf("Wifi Disonnected\r\n");
     }
@@ -53,9 +55,15 @@ void user_init(void) {
 			params.ap_psk
 		);
 
-    wifi_start(STATION_MODE, &params, wifi_connect_cb);
+//    wifi_start(STATION_MODE, &params, wifi_connect_cb);
 	fotabtn_init();
     os_printf("System started ...\r\n");
+
+    	os_timer_disarm(&tt);
+    	os_timer_setfn(&tt, (os_timer_func_t *)ttcb, NULL);
+    	os_timer_arm(&tt, 1000, 1);
+
+
 }
 
 

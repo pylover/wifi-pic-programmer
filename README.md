@@ -67,7 +67,7 @@ That's it, the try the python tool to program your PIC.
 
 #### ESP8266 GPIO
 
-VPP(+12v):  D0   GPIO16 
+VPP(+12v):  D0   GPIO14 
 VDD:        D4   GPIO02
 data:       D2   GPIO04
 clock:      D1   GPIO05
